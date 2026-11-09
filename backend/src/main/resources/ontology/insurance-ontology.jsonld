@@ -1,0 +1,762 @@
+{
+  "@context": {
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "ins": "http://ontology.insure.com/schema#"
+  },
+  "@id": "ins:InsuranceProductUnderwritingOntology",
+  "rdfs:label": "보험 상품 · 언더라이팅(인수심사) · 위험관리 통합 온톨로지",
+  "rdfs:comment": "JSON-LD 및 RDFS 표준 어휘를 기반으로 보험사의 상품(Product), 위험(Risk), 언더라이팅(Underwriting) 도메인 개념과 마이크로서비스 출처 메타데이터를 정의한 온톨로지 스키마",
+  "ins:version": "1.2.0",
+  "@graph": [
+    {
+      "@id": "ins:InsuranceProduct",
+      "@type": "rdfs:Class",
+      "rdfs:label": "보험상품 (Insurance Product)",
+      "rdfs:comment": "보험사가 판매하는 주계약 및 특약 구성을 포함하는 금융보험 상품 엔티티",
+      "ins:domain": "Product",
+      "ins:sourceService": "product-catalog-service",
+      "ins:sourceEndpoint": "GET /mock/product-service/products/{productId}"
+    },
+    {
+      "@id": "ins:Coverage",
+      "@type": "rdfs:Class",
+      "rdfs:label": "담보/특약 (Coverage)",
+      "rdfs:comment": "보험상품을 구성하는 개별 보장 단위(주계약 담보 또는 선택특약)",
+      "ins:domain": "Product",
+      "ins:sourceService": "product-catalog-service",
+      "ins:sourceEndpoint": "GET /mock/product-service/products/{productId}/coverages"
+    },
+    {
+      "@id": "ins:BenefitCondition",
+      "@type": "rdfs:Class",
+      "rdfs:label": "급부/보장조건 (Benefit Condition)",
+      "rdfs:comment": "담보별로 보험금이 지급되는 사유, 지급한도, 감액기간 및 면책기간 조건",
+      "ins:domain": "Product",
+      "ins:sourceService": "product-catalog-service",
+      "ins:sourceEndpoint": "GET /mock/product-service/coverages/{coverageId}/benefits"
+    },
+    {
+      "@id": "ins:ApplicantProfile",
+      "@type": "rdfs:Class",
+      "rdfs:label": "피보험자/청약자 프로필 (Applicant Profile)",
+      "rdfs:comment": "보험 가입 심사 대상이 되는 피보험자의 인적 속성, 직업급수, 건강/생활습관 요약 정보",
+      "ins:domain": "Risk",
+      "ins:sourceService": "risk-assessment-service",
+      "ins:sourceEndpoint": "GET /mock/risk-service/applicants/{applicantId}"
+    },
+    {
+      "@id": "ins:RiskFactor",
+      "@type": "rdfs:Class",
+      "rdfs:label": "위험요소 (Risk Factor)",
+      "rdfs:comment": "피보험자가 보유한 의학적 기왕증(Medical), 직업적 위험(Occupational), 생활/운전습관 위험(Behavioral) 요소",
+      "ins:domain": "Risk",
+      "ins:sourceService": "risk-assessment-service",
+      "ins:sourceEndpoint": "GET /mock/risk-service/applicants/{applicantId}/risk-factors"
+    },
+    {
+      "@id": "ins:RiskAssessment",
+      "@type": "rdfs:Class",
+      "rdfs:label": "위험도 평가결과 (Risk Assessment)",
+      "rdfs:comment": "위험요소들을 종합하여 스코어링 엔진이 산출한 종합 위험점수, 위험등급 및 표준할증지수",
+      "ins:domain": "Risk",
+      "ins:sourceService": "risk-assessment-service",
+      "ins:sourceEndpoint": "GET /mock/risk-service/applicants/{applicantId}/assessment"
+    },
+    {
+      "@id": "ins:UnderwritingCase",
+      "@type": "rdfs:Class",
+      "rdfs:label": "언더라이팅 심사건 (Underwriting Case)",
+      "rdfs:comment": "특정 피보험자가 특정 보험상품에 청약할 때 개시되는 인수심사 트랜잭션 루트 엔티티",
+      "ins:domain": "Underwriting",
+      "ins:sourceService": "underwriting-engine-service",
+      "ins:sourceEndpoint": "GET /mock/uw-service/cases/{caseId}",
+      "ins:isRootQuery": true
+    },
+    {
+      "@id": "ins:UnderwritingRule",
+      "@type": "rdfs:Class",
+      "rdfs:label": "인수심사 규칙 (Underwriting Rule)",
+      "rdfs:comment": "상품/담보와 위험요소 조합에 대해 승낙, 할증, 부담보, 거절을 판정하는 비즈니스 룰",
+      "ins:domain": "Underwriting",
+      "ins:sourceService": "underwriting-engine-service",
+      "ins:sourceEndpoint": "GET /mock/uw-service/rules"
+    },
+    {
+      "@id": "ins:UnderwritingDecision",
+      "@type": "rdfs:Class",
+      "rdfs:label": "언더라이팅 심사결정 (Underwriting Decision)",
+      "rdfs:comment": "인수심사 룰 엔진과 심사역 평가를 거쳐 도출된 최종 인수 판정(승낙/할증/부담보/거절) 및 보험료 산출 내역",
+      "ins:domain": "Underwriting",
+      "ins:sourceService": "underwriting-engine-service",
+      "ins:sourceEndpoint": "GET /mock/uw-service/cases/{caseId}/decision"
+    },
+
+    {
+      "@id": "ins:productId",
+      "@type": "rdf:Property",
+      "rdfs:label": "상품 ID",
+      "rdfs:comment": "보험상품 고유 식별자",
+      "rdfs:domain": "ins:InsuranceProduct",
+      "rdfs:range": "xsd:ID",
+      "ins:required": true,
+      "ins:sourceField": "prod_id"
+    },
+    {
+      "@id": "ins:productCode",
+      "@type": "rdf:Property",
+      "rdfs:label": "상품코드",
+      "rdfs:comment": "약관 및 상품 공시용 표준 상품코드",
+      "rdfs:domain": "ins:InsuranceProduct",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "prod_cd"
+    },
+    {
+      "@id": "ins:productName",
+      "@type": "rdf:Property",
+      "rdfs:label": "상품명",
+      "rdfs:comment": "보험상품 공식 명칭",
+      "rdfs:domain": "ins:InsuranceProduct",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "prod_nm"
+    },
+    {
+      "@id": "ins:productCategory",
+      "@type": "rdf:Property",
+      "rdfs:label": "상품분류",
+      "rdfs:comment": "상품군 카테고리 (COMPREHENSIVE_HEALTH, SIMPLIFIED_ISSUE, DRIVER_ACCIDENT)",
+      "rdfs:domain": "ins:InsuranceProduct",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "prod_cat_cd"
+    },
+    {
+      "@id": "ins:baseMonthlyPremium",
+      "@type": "rdf:Property",
+      "rdfs:label": "기본 월보험료(원)",
+      "rdfs:comment": "표준체 기준 월 기본보험료",
+      "rdfs:domain": "ins:InsuranceProduct",
+      "rdfs:range": "xsd:int",
+      "ins:required": true,
+      "ins:sourceField": "base_mm_prem"
+    },
+    {
+      "@id": "ins:maxEligibleAge",
+      "@type": "rdf:Property",
+      "rdfs:label": "최대 가입가능 연령",
+      "rdfs:comment": "상품 가입이 허용되는 최대 피보험자 나이",
+      "rdfs:domain": "ins:InsuranceProduct",
+      "rdfs:range": "xsd:int",
+      "ins:required": true,
+      "ins:sourceField": "max_join_age"
+    },
+    {
+      "@id": "ins:underwritingTrack",
+      "@type": "rdf:Property",
+      "rdfs:label": "인수심사 트랙",
+      "rdfs:comment": "표준심사(STANDARD), 간편심사(SIMPLIFIED_325), 무심사(GUARANTEED) 구분",
+      "rdfs:domain": "ins:InsuranceProduct",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "uw_track_type"
+    },
+    {
+      "@id": "ins:hasCoverage",
+      "@type": "rdf:Property",
+      "rdfs:label": "구성 담보 목록",
+      "rdfs:comment": "보험상품에 포함된 주계약 및 선택특약 담보 리스트",
+      "rdfs:domain": "ins:InsuranceProduct",
+      "rdfs:range": "ins:Coverage",
+      "ins:isList": true,
+      "ins:required": true,
+      "ins:sourceField": "coverages"
+    },
+
+    {
+      "@id": "ins:coverageId",
+      "@type": "rdf:Property",
+      "rdfs:label": "담보 ID",
+      "rdfs:comment": "담보 고유 식별자",
+      "rdfs:domain": "ins:Coverage",
+      "rdfs:range": "xsd:ID",
+      "ins:required": true,
+      "ins:sourceField": "cov_id"
+    },
+    {
+      "@id": "ins:coverageCode",
+      "@type": "rdf:Property",
+      "rdfs:label": "담보코드",
+      "rdfs:comment": "표준 담보 코드",
+      "rdfs:domain": "ins:Coverage",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "cov_cd"
+    },
+    {
+      "@id": "ins:coverageName",
+      "@type": "rdf:Property",
+      "rdfs:label": "담보명",
+      "rdfs:comment": "보장 담보 또는 특약 명칭",
+      "rdfs:domain": "ins:Coverage",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "cov_nm"
+    },
+    {
+      "@id": "ins:isMandatory",
+      "@type": "rdf:Property",
+      "rdfs:label": "필수 주계약 여부",
+      "rdfs:comment": "필수 가입 주계약 담보인지 선택특약인지 여부",
+      "rdfs:domain": "ins:Coverage",
+      "rdfs:range": "xsd:boolean",
+      "ins:required": true,
+      "ins:sourceField": "mandatory_yn"
+    },
+    {
+      "@id": "ins:maxInsuredAmount",
+      "@type": "rdf:Property",
+      "rdfs:label": "최대 가입금액(만원)",
+      "rdfs:comment": "해당 담보의 최대 가입한도 금액(단위: 만원)",
+      "rdfs:domain": "ins:Coverage",
+      "rdfs:range": "xsd:int",
+      "ins:required": true,
+      "ins:sourceField": "max_ins_amt"
+    },
+    {
+      "@id": "ins:sensitiveRiskCategory",
+      "@type": "rdf:Property",
+      "rdfs:label": "민감 위험분류",
+      "rdfs:comment": "해당 담보 인수 시 중점 심사하는 위험 카테고리 (CARDIOVASCULAR, ENDOCRINE, OCCUPATIONAL, DRIVING, CANCER)",
+      "rdfs:domain": "ins:Coverage",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "sens_risk_cat"
+    },
+    {
+      "@id": "ins:hasBenefit",
+      "@type": "rdf:Property",
+      "rdfs:label": "보장 급부 조건 목록",
+      "rdfs:comment": "담보에 연결된 세부 급부 지급 조건",
+      "rdfs:domain": "ins:Coverage",
+      "rdfs:range": "ins:BenefitCondition",
+      "ins:isList": true,
+      "ins:required": true,
+      "ins:sourceField": "benefits"
+    },
+
+    {
+      "@id": "ins:benefitId",
+      "@type": "rdf:Property",
+      "rdfs:label": "급부 ID",
+      "rdfs:comment": "급부 조건 식별자",
+      "rdfs:domain": "ins:BenefitCondition",
+      "rdfs:range": "xsd:ID",
+      "ins:required": true,
+      "ins:sourceField": "bnf_id"
+    },
+    {
+      "@id": "ins:triggerEvent",
+      "@type": "rdf:Property",
+      "rdfs:label": "지급 사유 이벤트",
+      "rdfs:comment": "보험금 지급 사유 (예: 뇌혈관질환 진단확정, 허혈성심장질환 수술 등)",
+      "rdfs:domain": "ins:BenefitCondition",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "trig_evt_desc"
+    },
+    {
+      "@id": "ins:payoutAmount",
+      "@type": "rdf:Property",
+      "rdfs:label": "지급 보험금(만원)",
+      "rdfs:comment": "지급 사유 발생 시 지급되는 기준 보험금(단위: 만원)",
+      "rdfs:domain": "ins:BenefitCondition",
+      "rdfs:range": "xsd:int",
+      "ins:required": true,
+      "ins:sourceField": "payout_amt"
+    },
+    {
+      "@id": "ins:waitingPeriodDays",
+      "@type": "rdf:Property",
+      "rdfs:label": "면책기간(일)",
+      "rdfs:comment": "보장 개시 전 면책기간 일수 (예: 암 90일)",
+      "rdfs:domain": "ins:BenefitCondition",
+      "rdfs:range": "xsd:int",
+      "ins:required": true,
+      "ins:sourceField": "wait_days"
+    },
+    {
+      "@id": "ins:reductionPeriodMonths",
+      "@type": "rdf:Property",
+      "rdfs:label": "감액기간(개월)",
+      "rdfs:comment": "보험금 50% 감액 지급이 적용되는 가입 초기 개월 수",
+      "rdfs:domain": "ins:BenefitCondition",
+      "rdfs:range": "xsd:int",
+      "ins:required": true,
+      "ins:sourceField": "red_months"
+    },
+
+    {
+      "@id": "ins:applicantId",
+      "@type": "rdf:Property",
+      "rdfs:label": "피보험자 ID",
+      "rdfs:comment": "피보험자 고유 식별자",
+      "rdfs:domain": "ins:ApplicantProfile",
+      "rdfs:range": "xsd:ID",
+      "ins:required": true,
+      "ins:sourceField": "appl_id"
+    },
+    {
+      "@id": "ins:applicantName",
+      "@type": "rdf:Property",
+      "rdfs:label": "피보험자 성명",
+      "rdfs:comment": "피보험자 이름",
+      "rdfs:domain": "ins:ApplicantProfile",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "appl_nm"
+    },
+    {
+      "@id": "ins:age",
+      "@type": "rdf:Property",
+      "rdfs:label": "보험나이",
+      "rdfs:comment": "상령일 기준 계산된 피보험자 보험나이",
+      "rdfs:domain": "ins:ApplicantProfile",
+      "rdfs:range": "xsd:int",
+      "ins:required": true,
+      "ins:sourceField": "ins_age"
+    },
+    {
+      "@id": "ins:gender",
+      "@type": "rdf:Property",
+      "rdfs:label": "성별",
+      "rdfs:comment": "피보험자 성별 (M/F)",
+      "rdfs:domain": "ins:ApplicantProfile",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "gndr_cd"
+    },
+    {
+      "@id": "ins:occupationName",
+      "@type": "rdf:Property",
+      "rdfs:label": "직업명",
+      "rdfs:comment": "표준직업분류 기준 직업 명칭",
+      "rdfs:domain": "ins:ApplicantProfile",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "occ_nm"
+    },
+    {
+      "@id": "ins:occupationGrade",
+      "@type": "rdf:Property",
+      "rdfs:label": "상해 직업급수",
+      "rdfs:comment": "직업 위험도에 따른 급수 (1급: 비위험직, 2급: 중위험직, 3급: 고위험 현장직)",
+      "rdfs:domain": "ins:ApplicantProfile",
+      "rdfs:range": "xsd:int",
+      "ins:required": true,
+      "ins:sourceField": "occ_grd"
+    },
+    {
+      "@id": "ins:isSmoker",
+      "@type": "rdf:Property",
+      "rdfs:label": "현재 흡연 여부",
+      "rdfs:comment": "최근 1년 이내 흡연 여부",
+      "rdfs:domain": "ins:ApplicantProfile",
+      "rdfs:range": "xsd:boolean",
+      "ins:required": true,
+      "ins:sourceField": "smk_yn"
+    },
+    {
+      "@id": "ins:bmi",
+      "@type": "rdf:Property",
+      "rdfs:label": "체질량지수(BMI)",
+      "rdfs:comment": "신체 체질량지수",
+      "rdfs:domain": "ins:ApplicantProfile",
+      "rdfs:range": "xsd:float",
+      "ins:required": true,
+      "ins:sourceField": "bmi_val"
+    },
+    {
+      "@id": "ins:hasRiskFactor",
+      "@type": "rdf:Property",
+      "rdfs:label": "보유 위험요소 목록",
+      "rdfs:comment": "피보험자에게 식별된 병력/직업/운전 관련 위험요소 리스트",
+      "rdfs:domain": "ins:ApplicantProfile",
+      "rdfs:range": "ins:RiskFactor",
+      "ins:isList": true,
+      "ins:required": true,
+      "ins:sourceField": "risk_factors"
+    },
+    {
+      "@id": "ins:riskAssessment",
+      "@type": "rdf:Property",
+      "rdfs:label": "종합 위험도 평가",
+      "rdfs:comment": "리스크 스코어링 엔진이 평가한 피보험자 종합 위험도 결과",
+      "rdfs:domain": "ins:ApplicantProfile",
+      "rdfs:range": "ins:RiskAssessment",
+      "ins:required": true,
+      "ins:sourceField": "assessment"
+    },
+
+    {
+      "@id": "ins:riskFactorId",
+      "@type": "rdf:Property",
+      "rdfs:label": "위험요소 ID",
+      "rdfs:comment": "위험요소 고유 식별자",
+      "rdfs:domain": "ins:RiskFactor",
+      "rdfs:range": "xsd:ID",
+      "ins:required": true,
+      "ins:sourceField": "rf_id"
+    },
+    {
+      "@id": "ins:factorCode",
+      "@type": "rdf:Property",
+      "rdfs:label": "위험요소 코드",
+      "rdfs:comment": "KCD 질병코드 또는 표준 위험요소 코드 (예: I10_HYPERTENSION, E11_DIABETES, OCC_HIGH_ALTITUDE)",
+      "rdfs:domain": "ins:RiskFactor",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "rf_cd"
+    },
+    {
+      "@id": "ins:factorName",
+      "@type": "rdf:Property",
+      "rdfs:label": "위험요소 명칭",
+      "rdfs:comment": "위험요소 한글 명칭",
+      "rdfs:domain": "ins:RiskFactor",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "rf_nm"
+    },
+    {
+      "@id": "ins:riskCategory",
+      "@type": "rdf:Property",
+      "rdfs:label": "위험 분류",
+      "rdfs:comment": "위험 도메인 분류 (CARDIOVASCULAR, ENDOCRINE, OCCUPATIONAL, DRIVING, CANCER)",
+      "rdfs:domain": "ins:RiskFactor",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "rf_cat"
+    },
+    {
+      "@id": "ins:severityLevel",
+      "@type": "rdf:Property",
+      "rdfs:label": "위험 심각도",
+      "rdfs:comment": "심각도 수준 (LOW, MODERATE, HIGH, CRITICAL)",
+      "rdfs:domain": "ins:RiskFactor",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "sev_lvl"
+    },
+    {
+      "@id": "ins:riskScoreContribution",
+      "@type": "rdf:Property",
+      "rdfs:label": "위험점수 기여도",
+      "rdfs:comment": "해당 위험요소가 종합 위험점수에 가산하는 점수 (0~100)",
+      "rdfs:domain": "ins:RiskFactor",
+      "rdfs:range": "xsd:int",
+      "ins:required": true,
+      "ins:sourceField": "score_contrib"
+    },
+    {
+      "@id": "ins:clinicalNote",
+      "@type": "rdf:Property",
+      "rdfs:label": "고지/임상 상세소견",
+      "rdfs:comment": "계약 전 알릴 의무(고지사항) 및 건강검진/진료기록 요약",
+      "rdfs:domain": "ins:RiskFactor",
+      "rdfs:range": "xsd:string",
+      "ins:required": false,
+      "ins:sourceField": "clin_note"
+    },
+
+    {
+      "@id": "ins:assessmentId",
+      "@type": "rdf:Property",
+      "rdfs:label": "위험평가 ID",
+      "rdfs:comment": "위험도 평가 결과 ID",
+      "rdfs:domain": "ins:RiskAssessment",
+      "rdfs:range": "xsd:ID",
+      "ins:required": true,
+      "ins:sourceField": "assm_id"
+    },
+    {
+      "@id": "ins:totalRiskScore",
+      "@type": "rdf:Property",
+      "rdfs:label": "종합 위험점수",
+      "rdfs:comment": "기왕증·직업·연령·BMI를 종합한 위험점수 (0~100점)",
+      "rdfs:domain": "ins:RiskAssessment",
+      "rdfs:range": "xsd:int",
+      "ins:required": true,
+      "ins:sourceField": "tot_risk_scr"
+    },
+    {
+      "@id": "ins:riskGrade",
+      "@type": "rdf:Property",
+      "rdfs:label": "위험등급",
+      "rdfs:comment": "산출된 위험등급 (PREFERRED, STANDARD, SUBSTANDARD_A, SUBSTANDARD_B, HIGH_RISK_DECLINE)",
+      "rdfs:domain": "ins:RiskAssessment",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "risk_grd_cd"
+    },
+    {
+      "@id": "ins:mortalityLoadingRatio",
+      "@type": "rdf:Property",
+      "rdfs:label": "위험률 할증지수(배수)",
+      "rdfs:comment": "표준체(1.0) 대비 적용되는 위험 할증 배수 (예: 1.35 = 35% 할증)",
+      "rdfs:domain": "ins:RiskAssessment",
+      "rdfs:range": "xsd:float",
+      "ins:required": true,
+      "ins:sourceField": "mort_load_ratio"
+    },
+    {
+      "@id": "ins:scoringModelVersion",
+      "@type": "rdf:Property",
+      "rdfs:label": "스코어링 모델 버전",
+      "rdfs:comment": "위험도 산출에 사용된 언더라이팅 리스크 모델 버전",
+      "rdfs:domain": "ins:RiskAssessment",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "mdl_ver"
+    },
+
+    {
+      "@id": "ins:caseId",
+      "@type": "rdf:Property",
+      "rdfs:label": "심사건 ID",
+      "rdfs:comment": "언더라이팅 심사건 고유 번호",
+      "rdfs:domain": "ins:UnderwritingCase",
+      "rdfs:range": "xsd:ID",
+      "ins:required": true,
+      "ins:sourceField": "uw_case_no"
+    },
+    {
+      "@id": "ins:applicationDate",
+      "@type": "rdf:Property",
+      "rdfs:label": "청약일시",
+      "rdfs:comment": "청약 및 인수심사 접수 일자",
+      "rdfs:domain": "ins:UnderwritingCase",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "appl_dt"
+    },
+    {
+      "@id": "ins:channelType",
+      "@type": "rdf:Property",
+      "rdfs:label": "가입 채널",
+      "rdfs:comment": "청약 유입 채널 (GA_AGENCY, EXCLUSIVE_AGENT, DIRECT_CM, BANCASSURANCE)",
+      "rdfs:domain": "ins:UnderwritingCase",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "chnl_dv_cd"
+    },
+    {
+      "@id": "ins:uwStatus",
+      "@type": "rdf:Property",
+      "rdfs:label": "심사 진행상태",
+      "rdfs:comment": "언더라이팅 처리 상태 (AUTO_APPROVED, CONDITIONAL_OFFER, MANUAL_REVIEW, DECLINED)",
+      "rdfs:domain": "ins:UnderwritingCase",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "uw_stat_cd"
+    },
+    {
+      "@id": "ins:targetProduct",
+      "@type": "rdf:Property",
+      "rdfs:label": "청약 대상 보험상품",
+      "rdfs:comment": "심사 대상이 되는 보험상품 엔티티 참조 (Product Service 연동)",
+      "rdfs:domain": "ins:UnderwritingCase",
+      "rdfs:range": "ins:InsuranceProduct",
+      "ins:required": true,
+      "ins:sourceField": "target_prod_id",
+      "ins:crossServiceJoin": "product-catalog-service"
+    },
+    {
+      "@id": "ins:targetApplicant",
+      "@type": "rdf:Property",
+      "rdfs:label": "청약 피보험자 프로필",
+      "rdfs:comment": "심사 대상 피보험자 및 위험 프로필 참조 (Risk Service 연동)",
+      "rdfs:domain": "ins:UnderwritingCase",
+      "rdfs:range": "ins:ApplicantProfile",
+      "ins:required": true,
+      "ins:sourceField": "target_appl_id",
+      "ins:crossServiceJoin": "risk-assessment-service"
+    },
+    {
+      "@id": "ins:matchedRules",
+      "@type": "rdf:Property",
+      "rdfs:label": "적용된 인수심사 규칙 목록",
+      "rdfs:comment": "해당 심사건에서 트리거된 언더라이팅 룰 리스트",
+      "rdfs:domain": "ins:UnderwritingCase",
+      "rdfs:range": "ins:UnderwritingRule",
+      "ins:isList": true,
+      "ins:required": true,
+      "ins:sourceField": "matched_rule_ids"
+    },
+    {
+      "@id": "ins:decision",
+      "@type": "rdf:Property",
+      "rdfs:label": "최종 심사 결정",
+      "rdfs:comment": "인수심사 최종 판정 및 할증/부담보 조건 결과",
+      "rdfs:domain": "ins:UnderwritingCase",
+      "rdfs:range": "ins:UnderwritingDecision",
+      "ins:required": true,
+      "ins:sourceField": "decision_obj"
+    },
+
+    {
+      "@id": "ins:ruleId",
+      "@type": "rdf:Property",
+      "rdfs:label": "심사규칙 ID",
+      "rdfs:comment": "언더라이팅 룰 고유 식별자",
+      "rdfs:domain": "ins:UnderwritingRule",
+      "rdfs:range": "xsd:ID",
+      "ins:required": true,
+      "ins:sourceField": "rule_id"
+    },
+    {
+      "@id": "ins:ruleCode",
+      "@type": "rdf:Property",
+      "rdfs:label": "심사규칙 코드",
+      "rdfs:comment": "인수지침 표준 룰 코드",
+      "rdfs:domain": "ins:UnderwritingRule",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "rule_cd"
+    },
+    {
+      "@id": "ins:ruleName",
+      "@type": "rdf:Property",
+      "rdfs:label": "심사규칙 명칭",
+      "rdfs:comment": "언더라이팅 룰 제목",
+      "rdfs:domain": "ins:UnderwritingRule",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "rule_nm"
+    },
+    {
+      "@id": "ins:targetRiskCategory",
+      "@type": "rdf:Property",
+      "rdfs:label": "대상 위험분류",
+      "rdfs:comment": "규칙이 검사하는 위험 카테고리",
+      "rdfs:domain": "ins:UnderwritingRule",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "tgt_risk_cat"
+    },
+    {
+      "@id": "ins:conditionExpression",
+      "@type": "rdf:Property",
+      "rdfs:label": "조건 표현식",
+      "rdfs:comment": "룰 발동 조건식 (예: riskFactor == I10_HYPERTENSION && coverage == CARDIOVASCULAR)",
+      "rdfs:domain": "ins:UnderwritingRule",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "cond_expr"
+    },
+    {
+      "@id": "ins:actionType",
+      "@type": "rdf:Property",
+      "rdfs:label": "판정 액션 유형",
+      "rdfs:comment": "룰 적중 시 수행할 판정 액션 (ACCEPT, PREMIUM_LOADING, COVERAGE_EXCLUSION, BENEFIT_LIMIT, DECLINE)",
+      "rdfs:domain": "ins:UnderwritingRule",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "act_type"
+    },
+    {
+      "@id": "ins:ruleDescription",
+      "@type": "rdf:Property",
+      "rdfs:label": "심사지침 해설",
+      "rdfs:comment": "인수심사 매뉴얼 상의 상세 근거 설명",
+      "rdfs:domain": "ins:UnderwritingRule",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "rule_desc"
+    },
+
+    {
+      "@id": "ins:decisionId",
+      "@type": "rdf:Property",
+      "rdfs:label": "결정 ID",
+      "rdfs:comment": "심사 결정 고유 식별자",
+      "rdfs:domain": "ins:UnderwritingDecision",
+      "rdfs:range": "xsd:ID",
+      "ins:required": true,
+      "ins:sourceField": "dec_id"
+    },
+    {
+      "@id": "ins:decisionOutcome",
+      "@type": "rdf:Property",
+      "rdfs:label": "최종 인수판정 결과",
+      "rdfs:comment": "승낙(STANDARD_ACCEPT), 할증승낙(SUBSTANDARD_LOADING), 부담보승낙(CONDITIONAL_EXCLUSION), 거절(DECLINED)",
+      "rdfs:domain": "ins:UnderwritingDecision",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "dec_outcome"
+    },
+    {
+      "@id": "ins:finalMonthlyPremium",
+      "@type": "rdf:Property",
+      "rdfs:label": "최종 산출 월보험료(원)",
+      "rdfs:comment": "할증률 및 담보 조정이 반영된 최종 월 납입보험료",
+      "rdfs:domain": "ins:UnderwritingDecision",
+      "rdfs:range": "xsd:int",
+      "ins:required": true,
+      "ins:sourceField": "fnl_mm_prem"
+    },
+    {
+      "@id": "ins:surchargeAmount",
+      "@type": "rdf:Property",
+      "rdfs:label": "위험 할증 보험료(원)",
+      "rdfs:comment": "기본 보험료 대비 위험도 할증으로 추가된 금액",
+      "rdfs:domain": "ins:UnderwritingDecision",
+      "rdfs:range": "xsd:int",
+      "ins:required": true,
+      "ins:sourceField": "surchg_amt"
+    },
+    {
+      "@id": "ins:loadingPercentage",
+      "@type": "rdf:Property",
+      "rdfs:label": "할증률(%)",
+      "rdfs:comment": "적용된 보험료 할증 비율(%)",
+      "rdfs:domain": "ins:UnderwritingDecision",
+      "rdfs:range": "xsd:float",
+      "ins:required": true,
+      "ins:sourceField": "load_pct"
+    },
+    {
+      "@id": "ins:exclusionClauses",
+      "@type": "rdf:Property",
+      "rdfs:label": "특정부위/질병 부담보 조건",
+      "rdfs:comment": "인수 조건으로 부과된 전기간 또는 특정기간 부담보(보장제외) 부위/질병 목록",
+      "rdfs:domain": "ins:UnderwritingDecision",
+      "rdfs:range": "xsd:string",
+      "ins:isList": true,
+      "ins:required": true,
+      "ins:sourceField": "excl_clauses"
+    },
+    {
+      "@id": "ins:underwriterComment",
+      "@type": "rdf:Property",
+      "rdfs:label": "심사역/AI 종합 소견",
+      "rdfs:comment": "언더라이팅 판정에 대한 종합 근거 요약",
+      "rdfs:domain": "ins:UnderwritingDecision",
+      "rdfs:range": "xsd:string",
+      "ins:required": true,
+      "ins:sourceField": "uw_comment"
+    },
+    {
+      "@id": "ins:automatedDecision",
+      "@type": "rdf:Property",
+      "rdfs:label": "자동심사(STP) 처리 여부",
+      "rdfs:comment": "인적 심사 없이 AI/룰 엔진에 의해 무인 자동심사(Straight-Through Processing)로 완결되었는지 여부",
+      "rdfs:domain": "ins:UnderwritingDecision",
+      "rdfs:range": "xsd:boolean",
+      "ins:required": true,
+      "ins:sourceField": "stp_auto_yn"
+    }
+  ]
+}

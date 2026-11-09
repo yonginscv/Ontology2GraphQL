@@ -1,0 +1,24 @@
+# Ontology → GraphQL Schema PoC 구현 태스크 트래커
+
+- [x] **요구사항 정의 및 스프린트 플래닝 수립** ([poc_requirements_and_sprint_plan.md](file:///home/antigravity/.gemini/jetski/brain/v1/default/jetski_remote_agents_3p/2a91c67a-a066-42f2-b10a-f6db83be934c/poc_requirements_and_sprint_plan.md))
+- [x] **Sprint 1: 보험 도메인 JSON-LD/RDFS 온톨로지 정의 및 GraphQL Schema 변환기 구현**
+  - [x] 프로젝트 디렉토리 스캐폴딩 (`/home/antigravity/insurance-ontology-graphql-poc`)
+  - [x] 보험 상품·위험·언더라이팅 JSON-LD / RDFS 온톨로지 스키마 작성 ([insurance-ontology.jsonld](file:///home/antigravity/insurance-ontology-graphql-poc/backend/src/main/resources/ontology/insurance-ontology.jsonld))
+  - [x] JSON-LD/RDFS 파서 및 [`OntologyToGraphQLGenerator`](file:///home/antigravity/insurance-ontology-graphql-poc/backend/src/main/java/com/insure/ontology/generator/OntologyToGraphQLGenerator.java) 엔진 구현 (`@ontologyClass`, `@ontologyProperty` 디렉티브 및 SDL 자동 생성)
+  - [x] 온톨로지 → GraphQL 스키마 도출 단위/통합 테스트 작성 및 검증 완료
+- [x] **Sprint 2: 3대 보험 도메인 Mock Providers 구축 (Product, Risk, Underwriting)**
+  - [x] 도메인 모델([DomainModels.java](file:///home/antigravity/insurance-ontology-graphql-poc/backend/src/main/java/com/insure/ontology/model/DomainModels.java)) 및 데이터 계보 추적기([`LineageTraceCollector`](file:///home/antigravity/insurance-ontology-graphql-poc/backend/src/main/java/com/insure/ontology/lineage/LineageTraceCollector.java)) 구현
+  - [x] [`ProductMockProvider`](file:///home/antigravity/insurance-ontology-graphql-poc/backend/src/main/java/com/insure/ontology/provider/ProductMockProvider.java) 구현 (무배당 100세 종합건강보험, 3·2·5 간편보험, 프로케어 운전자보험 및 특약/급부)
+  - [x] [`RiskMockProvider`](file:///home/antigravity/insurance-ontology-graphql-poc/backend/src/main/java/com/insure/ontology/provider/RiskMockProvider.java) 구현 (청약자 프로필, 고혈압·당뇨·갑상선결절·고소작업 등 위험요소 및 AI 리스크 스코어링)
+  - [x] [`UnderwritingMockProvider`](file:///home/antigravity/insurance-ontology-graphql-poc/backend/src/main/java/com/insure/ontology/provider/UnderwritingMockProvider.java) 구현 (심사건, 인수심사 룰 매칭 엔진, 승낙/할증/부담보/거절 결정 및 실시간 시뮬레이션)
+- [x] **Sprint 3: Spring for GraphQL Serving Layer & Hybrid REST API 구현**
+  - [x] 도출된 GraphQL 스키마를 동적 바인딩하는 [`OntologyGraphQLConfig`](file:///home/antigravity/insurance-ontology-graphql-poc/backend/src/main/java/com/insure/ontology/graphql/OntologyGraphQLConfig.java) 및 [`OntologyGraphQLController`](file:///home/antigravity/insurance-ontology-graphql-poc/backend/src/main/java/com/insure/ontology/graphql/OntologyGraphQLController.java) 구현 (`Unmapped fields: {}` 100% 매핑 검증 완료)
+  - [x] GraphQL 실행 시 호출된 도메인 Mock Provider와 온톨로지 URI 계보(`extensions.ontologyLineage`) 수집 연동
+  - [x] 하이브리드 REST API 컨트롤러([`HybridGatewayRestController`](file:///home/antigravity/insurance-ontology-graphql-poc/backend/src/main/java/com/insure/ontology/rest/HybridGatewayRestController.java)) 구현 (`/api/v1/ontology/**`, `/api/v1/products/**`, `/api/v1/underwriting/**`)
+  - [x] 백엔드 통합 테스트 ([`OntologyToGraphQLIntegrationTest`](file:///home/antigravity/insurance-ontology-graphql-poc/backend/src/test/java/com/insure/ontology/OntologyToGraphQLIntegrationTest.java)) 통과
+- [x] **Sprint 4: React 인터랙티브 클라이언트 애플리케이션 및 E2E 실증**
+  - [x] React + TypeScript + Vite + Tailwind CSS 프론트엔드 구축 ([App.tsx](file:///home/antigravity/insurance-ontology-graphql-poc/frontend/src/App.tsx))
+  - [x] **Tab 1: 3-Pane Ontology ↔ GraphQL ↔ Live Data Lineage 워크스페이스** 구현 ([OntologyGraphCanvas.tsx](file:///home/antigravity/insurance-ontology-graphql-poc/frontend/src/components/OntologyGraphCanvas.tsx), [SchemaAndQueryPane.tsx](file:///home/antigravity/insurance-ontology-graphql-poc/frontend/src/components/SchemaAndQueryPane.tsx), [LineageAndResponsePane.tsx](file:///home/antigravity/insurance-ontology-graphql-poc/frontend/src/components/LineageAndResponsePane.tsx))
+  - [x] **Tab 2: 언더라이팅 & 리스크 실시간 심사 시뮬레이터 (GraphQL vs REST 비교)** 구현 ([UnderwritingSimulatorTab.tsx](file:///home/antigravity/insurance-ontology-graphql-poc/frontend/src/components/UnderwritingSimulatorTab.tsx))
+  - [x] **Tab 3: Ontology Schema Evolution Lab (JSON-LD 편집 → 실시간 GraphQL SDL 자동 도출 비교)** 구현 ([OntologyEvolutionLabTab.tsx](file:///home/antigravity/insurance-ontology-graphql-poc/frontend/src/components/OntologyEvolutionLabTab.tsx))
+  - [x] 백엔드 & 프론트엔드 데몬 실행 및 프리뷰 연결 완료
