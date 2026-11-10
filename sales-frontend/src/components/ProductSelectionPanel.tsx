@@ -9,6 +9,8 @@ import {
 } from '../formatters';
 import {
   AlertCircle,
+  ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -26,6 +28,8 @@ interface ProductSelectionPanelProps {
   draftInput: UnderwritingSimulationInput;
   riskCatalog: RiskFactor[];
   onSelectProduct: (productId: string) => void;
+  onPrevStep: () => void;
+  onNextStep: () => void;
 }
 
 export const ProductSelectionPanel: React.FC<ProductSelectionPanelProps> = ({
@@ -34,6 +38,8 @@ export const ProductSelectionPanel: React.FC<ProductSelectionPanelProps> = ({
   draftInput,
   riskCatalog,
   onSelectProduct,
+  onPrevStep,
+  onNextStep,
 }) => {
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [expandedCoverageIds, setExpandedCoverageIds] = useState<Record<string, boolean>>({});
@@ -49,7 +55,9 @@ export const ProductSelectionPanel: React.FC<ProductSelectionPanelProps> = ({
   const customerActiveRiskFactors = riskCatalog.filter((rf) =>
     draftInput.riskFactorCodes.includes(rf.factorCode)
   );
-  const customerRiskCategories = new Set(customerActiveRiskFactors.map((rf) => rf.riskCategory));
+  const customerRiskCategories = new Set(
+    customerActiveRiskFactors.map((rf) => rf.riskCategory)
+  );
   if (draftInput.occupationGrade === 3) {
     customerRiskCategories.add('OCCUPATIONAL');
   }
@@ -69,34 +77,34 @@ export const ProductSelectionPanel: React.FC<ProductSelectionPanelProps> = ({
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full overflow-hidden">
       {/* Step Header */}
-      <div className="px-4 py-3.5 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2.5">
-          <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-sm">
-            2
+      <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/70 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="w-7 h-7 rounded-xl bg-indigo-600 text-white font-extrabold text-xs flex items-center justify-center shadow-sm">
+            STEP 2
           </span>
           <div>
-            <h2 className="text-sm font-bold text-slate-900">보험상품 선택 및 담보·급부 분석</h2>
-            <p className="text-[11px] text-slate-500">
-              GraphQL <code className="text-indigo-600 font-mono">insuranceProducts</code> ·{' '}
-              <code className="text-indigo-600 font-mono">hasCoverage</code> ·{' '}
-              <code className="text-indigo-600 font-mono">hasBenefit</code>
+            <h2 className="text-base font-extrabold text-slate-900">
+              청약 보험상품 선택 및 담보·급부 적합성 분석
+            </h2>
+            <p className="text-xs text-slate-500">
+              STEP 1에서 선택한 고객(<strong>{draftInput.applicantName}</strong>, {draftInput.age}세)의 위험요소와 상품별 담보(<code className="text-indigo-600 font-mono">hasCoverage</code>)·급부(<code className="text-indigo-600 font-mono">hasBenefit</code>)를 비교하고 상품을 선택하세요.
             </p>
           </div>
         </div>
 
         {/* Category Filter Pills */}
-        <div className="flex items-center gap-1 bg-slate-200/80 p-0.5 rounded-lg text-[11px]">
+        <div className="flex items-center gap-1 bg-slate-200/80 p-1 rounded-xl text-xs">
           {[
-            { code: 'ALL', label: '전체' },
-            { code: 'COMPREHENSIVE_HEALTH', label: '종합건강' },
-            { code: 'SIMPLIFIED_ISSUE', label: '3·2·5 간편' },
+            { code: 'ALL', label: '전체 상품' },
+            { code: 'COMPREHENSIVE_HEALTH', label: '종합건강보험' },
+            { code: 'SIMPLIFIED_ISSUE', label: '3·2·5 유병자 간편' },
             { code: 'DRIVER_ACCIDENT', label: '상해·운전자' },
           ].map((tab) => (
             <button
               key={tab.code}
               type="button"
               onClick={() => setCategoryFilter(tab.code)}
-              className={`px-2 py-1 rounded-md font-semibold transition ${
+              className={`px-3 py-1.5 rounded-lg font-bold transition ${
                 categoryFilter === tab.code
                   ? 'bg-white text-indigo-700 shadow-sm'
                   : 'text-slate-600 hover:text-slate-900'
@@ -108,257 +116,317 @@ export const ProductSelectionPanel: React.FC<ProductSelectionPanelProps> = ({
         </div>
       </div>
 
-      {/* Scrollable Body */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Product Cards */}
-        <div className="space-y-2.5">
-          {filteredProducts.map((prod) => {
-            const isSelected = prod.productId === selectedProductId;
-            const catMeta = PRODUCT_CATEGORY_META[prod.productCategory] || {
-              label: prod.productCategory,
-              badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
-              shortDesc: '',
-            };
-            const trackMeta = UW_TRACK_META[prod.underwritingTrack] || {
-              label: prod.underwritingTrack,
-              badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
-            };
-
-            const isAgeEligible = draftInput.age <= prod.maxEligibleAge;
-            const isSimplifiedTrack = prod.underwritingTrack === 'SIMPLIFIED_325';
-
-            // Pre-underwriting smart advisor hint for sales agent
-            let suitabilityBadge: { text: string; tone: 'warn' | 'recommend' | 'ok' } | null = null;
-            if (!isAgeEligible) {
-              suitabilityBadge = {
-                text: `가입연령 초과 (최대 ${prod.maxEligibleAge}세)`,
-                tone: 'warn',
-              };
-            } else if (hasAngina && !isSimplifiedTrack) {
-              suitabilityBadge = {
-                text: '협심증 이력 — 표준형 인수거절 예상',
-                tone: 'warn',
-              };
-            } else if ((hasAngina || hasChronic) && isSimplifiedTrack) {
-              suitabilityBadge = {
-                text: '유병자·만성질환 맞춤 추천 트랙',
-                tone: 'recommend',
-              };
-            } else {
-              suitabilityBadge = {
-                text: '가입연령 및 심사트랙 적격',
-                tone: 'ok',
-              };
-            }
-
-            return (
-              <div
-                key={prod.productId}
-                onClick={() => onSelectProduct(prod.productId)}
-                className={`cursor-pointer p-3.5 rounded-xl border transition-all ${
-                  isSelected
-                    ? 'bg-indigo-50/60 border-indigo-500 ring-2 ring-indigo-500/15 shadow-sm'
-                    : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/40'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${catMeta.badgeClass}`}
-                      >
-                        {catMeta.label}
-                      </span>
-                      <span
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${trackMeta.badgeClass}`}
-                      >
-                        {trackMeta.label}
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-400">
-                        {prod.productCode}
-                      </span>
-                    </div>
-
-                    <h3 className="text-sm font-extrabold text-slate-900">{prod.productName}</h3>
-                    <p className="text-[11px] text-slate-500">{catMeta.shortDesc}</p>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <div className="text-[10px] text-slate-400 font-medium">기본 월보험료</div>
-                    <div className="text-base font-extrabold text-indigo-700">
-                      {formatKRW(prod.baseMonthlyPremium)}
-                    </div>
-                    <div className="text-[10px] text-slate-500">
-                      최대 {prod.maxEligibleAge}세 가입
-                    </div>
-                  </div>
-                </div>
-
-                {/* Suitability & Coverage summary footer */}
-                <div className="mt-3 pt-2.5 border-t border-slate-200/70 flex items-center justify-between gap-2 flex-wrap">
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
-                    <Layers className="w-3.5 h-3.5 text-indigo-500" />
-                    <span>
-                      구성 담보 <strong>{prod.hasCoverage.length}개</strong> (주계약{' '}
-                      {prod.hasCoverage.filter((c) => c.isMandatory).length} · 특약{' '}
-                      {prod.hasCoverage.filter((c) => !c.isMandatory).length})
-                    </span>
-                  </div>
-
-                  {suitabilityBadge && (
-                    <span
-                      className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        suitabilityBadge.tone === 'warn'
-                          ? 'bg-rose-100 text-rose-700'
-                          : suitabilityBadge.tone === 'recommend'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {suitabilityBadge.tone === 'warn' ? (
-                        <AlertCircle className="w-3 h-3" />
-                      ) : suitabilityBadge.tone === 'recommend' ? (
-                        <Sparkles className="w-3 h-3" />
-                      ) : (
-                        <CheckCircle2 className="w-3 h-3" />
-                      )}
-                      {suitabilityBadge.text}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Selected Product Coverages & Benefits Breakdown */}
-        {selectedProduct && (
-          <div className="space-y-2.5 pt-2 border-t border-slate-200">
+      {/* Main 2-Column Wizard Step Body */}
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="grid grid-cols-12 gap-6">
+          {/* Left Column (5 cols): Insurance Product Cards */}
+          <div className="col-span-12 lg:col-span-5 space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Shield className="w-4 h-4 text-indigo-600" />
-                <h3 className="text-xs font-bold text-slate-900">
-                  선택 상품 구성 담보 및 급부 상세 ({selectedProduct.hasCoverage.length}개 담보)
-                </h3>
-              </div>
-              <span className="text-[11px] text-slate-500">
-                고객 위험요소와 연관된 담보는 집중 심사 표시됩니다
+              <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                2-A. 판매 상품 카탈로그 ({filteredProducts.length}종)
+              </h3>
+              <span className="text-[11px] text-slate-400">
+                심사할 상품을 선택하세요
               </span>
             </div>
 
-            <div className="space-y-2">
-              {selectedProduct.hasCoverage.map((cov) => {
-                const isSensitiveMatch = customerRiskCategories.has(cov.sensitiveRiskCategory);
-                const riskCatMeta = RISK_CATEGORY_META[cov.sensitiveRiskCategory] || {
-                  label: cov.sensitiveRiskCategory,
-                  colorClass: 'bg-slate-100 text-slate-700 border-slate-200',
+            <div className="space-y-3">
+              {filteredProducts.map((prod) => {
+                const isSelected = prod.productId === selectedProductId;
+                const catMeta = PRODUCT_CATEGORY_META[prod.productCategory] || {
+                  label: prod.productCategory,
+                  badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
+                  shortDesc: '',
                 };
-                const isExpanded = expandedCoverageIds[cov.coverageId] !== false;
+                const trackMeta = UW_TRACK_META[prod.underwritingTrack] || {
+                  label: prod.underwritingTrack,
+                  badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
+                };
+
+                const isAgeEligible = draftInput.age <= prod.maxEligibleAge;
+                const isSimplifiedTrack = prod.underwritingTrack === 'SIMPLIFIED_325';
+
+                let suitabilityBadge: {
+                  text: string;
+                  tone: 'warn' | 'recommend' | 'ok';
+                } | null = null;
+                if (!isAgeEligible) {
+                  suitabilityBadge = {
+                    text: `가입연령 초과 (최대 ${prod.maxEligibleAge}세)`,
+                    tone: 'warn',
+                  };
+                } else if (hasAngina && !isSimplifiedTrack) {
+                  suitabilityBadge = {
+                    text: '협심증 이력 — 표준형 인수거절 예상',
+                    tone: 'warn',
+                  };
+                } else if ((hasAngina || hasChronic) && isSimplifiedTrack) {
+                  suitabilityBadge = {
+                    text: '유병자·만성질환 맞춤 추천 트랙',
+                    tone: 'recommend',
+                  };
+                } else {
+                  suitabilityBadge = {
+                    text: '가입연령 및 심사트랙 적격',
+                    tone: 'ok',
+                  };
+                }
 
                 return (
                   <div
-                    key={cov.coverageId}
-                    className={`rounded-xl border transition-all overflow-hidden ${
-                      isSensitiveMatch
-                        ? 'border-amber-300 bg-amber-50/30'
-                        : 'border-slate-200 bg-slate-50/50'
+                    key={prod.productId}
+                    onClick={() => onSelectProduct(prod.productId)}
+                    className={`cursor-pointer p-4 rounded-2xl border transition-all ${
+                      isSelected
+                        ? 'bg-indigo-50/70 border-indigo-600 ring-2 ring-indigo-500/15 shadow-sm'
+                        : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50'
                     }`}
                   >
-                    {/* Coverage Header */}
-                    <button
-                      type="button"
-                      onClick={() => toggleCoverageExpand(cov.coverageId)}
-                      className="w-full p-3 text-left flex items-start justify-between gap-2 hover:bg-slate-100/60 transition"
-                    >
+                    <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span
-                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                              cov.isMandatory
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-slate-200 text-slate-700'
-                            }`}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${catMeta.badgeClass}`}
                           >
-                            {cov.isMandatory ? '주계약 (필수)' : '선택특약'}
-                          </span>
-                          <span className="text-[10px] font-mono text-slate-500">
-                            {cov.coverageCode}
+                            {catMeta.label}
                           </span>
                           <span
-                            className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${riskCatMeta.colorClass}`}
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${trackMeta.badgeClass}`}
                           >
-                            민감위험: {riskCatMeta.label.split(' ')[0]}
+                            {trackMeta.label}
                           </span>
-                          {isSensitiveMatch && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
-                              <ShieldAlert className="w-3 h-3" /> 고객 고지 위험요소 연동 심사 대상
-                            </span>
+                          <span className="text-[10px] font-mono text-slate-400">
+                            {prod.productCode}
+                          </span>
+                        </div>
+
+                        <h4 className="text-sm font-extrabold text-slate-900 pt-0.5">
+                          {prod.productName}
+                        </h4>
+                        <p className="text-xs text-slate-500">{catMeta.shortDesc}</p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="text-[10px] text-slate-400 font-medium">
+                          기본 월보험료
+                        </div>
+                        <div className="text-base font-extrabold text-indigo-700">
+                          {formatKRW(prod.baseMonthlyPremium)}
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          최대 {prod.maxEligibleAge}세 가입
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 pt-2.5 border-t border-slate-200/70 flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                        <Layers className="w-3.5 h-3.5 text-indigo-500" />
+                        <span>
+                          담보 <strong>{prod.hasCoverage.length}개</strong> (주계약{' '}
+                          {prod.hasCoverage.filter((c) => c.isMandatory).length} · 특약{' '}
+                          {prod.hasCoverage.filter((c) => !c.isMandatory).length})
+                        </span>
+                      </div>
+
+                      {suitabilityBadge && (
+                        <span
+                          className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                            suitabilityBadge.tone === 'warn'
+                              ? 'bg-rose-100 text-rose-700'
+                              : suitabilityBadge.tone === 'recommend'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {suitabilityBadge.tone === 'warn' ? (
+                            <AlertCircle className="w-3.5 h-3.5" />
+                          ) : suitabilityBadge.tone === 'recommend' ? (
+                            <Sparkles className="w-3.5 h-3.5" />
+                          ) : (
+                            <CheckCircle2 className="w-3.5 h-3.5" />
                           )}
-                        </div>
-                        <div className="text-xs font-bold text-slate-900">{cov.coverageName}</div>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className="text-right">
-                          <div className="text-[10px] text-slate-400">최대 가입한도</div>
-                          <div className="text-xs font-extrabold text-slate-800">
-                            {formatManwon(cov.maxInsuredAmount)}
-                          </div>
-                        </div>
-                        {isExpanded ? (
-                          <ChevronUp className="w-4 h-4 text-slate-400" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4 text-slate-400" />
-                        )}
-                      </div>
-                    </button>
-
-                    {/* Benefits List */}
-                    {isExpanded && (
-                      <div className="px-3 pb-3 pt-1 border-t border-slate-200/60 bg-white space-y-1.5">
-                        <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                          보장 급부 지급 조건 (hasBenefit)
-                        </div>
-                        {cov.hasBenefit.map((bnf) => (
-                          <div
-                            key={bnf.benefitId}
-                            className="p-2 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2 text-xs"
-                          >
-                            <div className="space-y-0.5">
-                              <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                                <Tag className="w-3 h-3 text-indigo-500 shrink-0" />
-                                <span>{bnf.triggerEvent}</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-[11px] text-slate-500 pl-4">
-                                <span className="inline-flex items-center gap-0.5">
-                                  <Clock className="w-3 h-3 text-slate-400" />
-                                  면책기간:{' '}
-                                  {bnf.waitingPeriodDays > 0 ? `${bnf.waitingPeriodDays}일` : '없음'}
-                                </span>
-                                <span>·</span>
-                                <span>
-                                  50% 감액기간:{' '}
-                                  {bnf.reductionPeriodMonths > 0
-                                    ? `${bnf.reductionPeriodMonths}개월`
-                                    : '없음'}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <span className="inline-block px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-bold text-xs border border-indigo-200">
-                                {formatManwon(bnf.payoutAmount)}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                          {suitabilityBadge.text}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}
             </div>
           </div>
-        )}
+
+          {/* Right Column (7 cols): Selected Product Coverages & Benefits Detail */}
+          <div className="col-span-12 lg:col-span-7 space-y-3">
+            {selectedProduct && (
+              <>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-indigo-600" />
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      2-B. [{selectedProduct.productName}] 구성 담보 및 급부 조건 상세
+                    </h3>
+                  </div>
+                  <span className="text-xs text-slate-500">
+                    고객 고지 위험요소와 민감도가 겹치는 담보는 주황색으로 표시됩니다
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {selectedProduct.hasCoverage.map((cov) => {
+                    const isSensitiveMatch = customerRiskCategories.has(
+                      cov.sensitiveRiskCategory
+                    );
+                    const riskCatMeta = RISK_CATEGORY_META[cov.sensitiveRiskCategory] || {
+                      label: cov.sensitiveRiskCategory,
+                      colorClass: 'bg-slate-100 text-slate-700 border-slate-200',
+                    };
+                    const isExpanded = expandedCoverageIds[cov.coverageId] !== false;
+
+                    return (
+                      <div
+                        key={cov.coverageId}
+                        className={`rounded-2xl border transition-all overflow-hidden ${
+                          isSensitiveMatch
+                            ? 'border-amber-300 bg-amber-50/40 shadow-2xs'
+                            : 'border-slate-200 bg-slate-50/50'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => toggleCoverageExpand(cov.coverageId)}
+                          className="w-full p-4 text-left flex items-start justify-between gap-3 hover:bg-slate-100/60 transition"
+                        >
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                                  cov.isMandatory
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-slate-200 text-slate-700'
+                                }`}
+                              >
+                                {cov.isMandatory ? '주계약 (필수)' : '선택특약'}
+                              </span>
+                              <span className="text-xs font-mono text-slate-500">
+                                {cov.coverageCode}
+                              </span>
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded border ${riskCatMeta.colorClass}`}
+                              >
+                                민감위험: {riskCatMeta.label}
+                              </span>
+                              {isSensitiveMatch && (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                  <ShieldAlert className="w-3.5 h-3.5" /> 고객 고지 위험요소 연동 집중심사 담보
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm font-extrabold text-slate-900 pt-0.5">
+                              {cov.coverageName}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <div className="text-[10px] text-slate-400">최대 가입한도</div>
+                              <div className="text-sm font-extrabold text-slate-800">
+                                {formatManwon(cov.maxInsuredAmount)}
+                              </div>
+                            </div>
+                            {isExpanded ? (
+                              <ChevronUp className="w-4 h-4 text-slate-400" />
+                            ) : (
+                              <ChevronDown className="w-4 h-4 text-slate-400" />
+                            )}
+                          </div>
+                        </button>
+
+                        {isExpanded && (
+                          <div className="px-4 pb-4 pt-2 border-t border-slate-200/60 bg-white space-y-2">
+                            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                              보장 급부 지급 조건 (hasBenefit · {cov.hasBenefit.length}건)
+                            </div>
+                            {cov.hasBenefit.map((bnf) => (
+                              <div
+                                key={bnf.benefitId}
+                                className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3 text-xs"
+                              >
+                                <div className="space-y-1">
+                                  <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                                    <Tag className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                                    <span>{bnf.triggerEvent}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-xs text-slate-500 pl-5">
+                                    <span className="inline-flex items-center gap-1">
+                                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                                      면책기간:{' '}
+                                      <strong>
+                                        {bnf.waitingPeriodDays > 0
+                                          ? `${bnf.waitingPeriodDays}일`
+                                          : '없음 (즉시 보장)'}
+                                      </strong>
+                                    </span>
+                                    <span>·</span>
+                                    <span>
+                                      50% 감액기간:{' '}
+                                      <strong>
+                                        {bnf.reductionPeriodMonths > 0
+                                          ? `${bnf.reductionPeriodMonths}개월`
+                                          : '없음'}
+                                      </strong>
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <span className="inline-block px-3 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-extrabold text-xs border border-indigo-200">
+                                    지급액 {formatManwon(bnf.payoutAmount)}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Wizard Step 2 Footer Bar */}
+      <div className="px-6 py-4 bg-slate-900 text-white border-t border-slate-800 flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <button
+          type="button"
+          onClick={onPrevStep}
+          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs inline-flex items-center gap-2 border border-slate-700 transition"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>이전: 고객 선택 및 고지사항</span>
+        </button>
+
+        <div className="hidden md:flex items-center gap-3 text-xs">
+          <span className="text-slate-400">청약 설계 조합:</span>
+          <span className="font-bold text-indigo-300">
+            {draftInput.applicantName} ({draftInput.age}세)
+          </span>
+          <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+          <span className="font-bold text-emerald-300">
+            {selectedProduct?.productName} (기본 {formatKRW(selectedProduct?.baseMonthlyPremium || 0)}/월)
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={onNextStep}
+          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-emerald-500 hover:from-indigo-600 hover:to-emerald-600 text-white font-extrabold text-xs inline-flex items-center gap-2 shadow-lg transition"
+        >
+          <span>다음: 언더라이팅 심사 실행</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
