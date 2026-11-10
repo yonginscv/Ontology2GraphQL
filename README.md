@@ -61,4 +61,16 @@ cd frontend
 npm install
 npm run dev
 ```
-- 브라우저에서 `http://localhost:5173` 접속
+- 브라우저에서 `http://localhost:5173` 접속 (온톨로지 ↔ GraphQL ↔ Lineage 3-Pane 실증 콘솔)
+
+### 3.3 영업사원용 언더라이팅 워크벤치 실행 (`sales-frontend` / Port `5174`)
+```bash
+cd sales-frontend
+npm install
+npm run dev
+```
+- 브라우저에서 `http://localhost:5174` 접속
+- `backend/src/main/resources/schema.graphql` 기반 영업사원용 가상 청약·언더라이팅 심사 어플리케이션:
+  - **Step 1 (피보험자 선택 및 고지사항)**: `applicantProfiles` 조회, 등록 고객 선택 및 신규 가망고객/위험요소(`RiskFactor`) 커스텀 입력, 실시간 예상 AI 위험점수(`RiskAssessment`) 확인
+  - **Step 2 (보험상품 선택 및 담보·급부 분석)**: `insuranceProducts` 조회, 고객 연령·위험요소와 담보별 민감 위험분류(`sensitiveRiskCategory`) 자동 매칭 및 급부 조건(`BenefitCondition`) 확인
+  - **Step 3 (실시간 언더라이팅 심사 및 대안 설계)**: `simulateUnderwriting` Mutation 실행, 최종 인수판정(`UnderwritingDecision`), 월 납입보험료(할증 반영), 부담보 조건, 적중 룰(`UnderwritingRule`) 확인 및 인수거절/할증 시 3·2·5 유병자 간편보험 원클릭 전환 비교 심사
