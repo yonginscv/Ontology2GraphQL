@@ -6,7 +6,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureGraphQlTester;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.test.tester.GraphQlTester;
+
+import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -91,5 +94,16 @@ class OntologyToGraphQLIntegrationTest {
                 .path("underwritingCase.targetApplicant.riskAssessment.totalRiskScore").entity(Integer.class).isEqualTo(68)
                 .path("underwritingCase.decision.decisionOutcome").entity(String.class).isEqualTo("SUBSTANDARD_LOADING")
                 .path("underwritingCase.decision.finalMonthlyPremium").entity(Integer.class).isEqualTo(126380);
+    }
+
+    @Test
+    void shouldServePinnedGraphiqlHtmlTemplate() throws Exception {
+        ClassPathResource resource = new ClassPathResource("graphiql/index.html");
+        String html = resource.getContentAsString(StandardCharsets.UTF_8);
+        assertThat(html)
+                .contains("https://unpkg.com/graphiql@3.0.6/graphiql.min.js")
+                .contains("https://unpkg.com/graphiql@3.0.6/graphiql.min.css")
+                .contains("https://unpkg.com/@graphiql/plugin-explorer@1.0.2/dist/index.umd.js")
+                .contains("https://unpkg.com/@graphiql/plugin-explorer@1.0.2/dist/style.css");
     }
 }
