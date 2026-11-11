@@ -2,24 +2,36 @@ import React, { useEffect, useState } from 'react';
 import { LineageStep, OntologyMetadata, RiskFactorCatalogItem } from './types';
 import { QUERY_PRESETS, QueryPreset } from './presets';
 import { OntologyGraphCanvas } from './components/OntologyGraphCanvas';
+import { OntologyViewerTab } from './components/OntologyViewerTab';
 import { SchemaAndQueryPane } from './components/SchemaAndQueryPane';
 import { LineageAndResponsePane } from './components/LineageAndResponsePane';
 import { UnderwritingSimulatorTab } from './components/UnderwritingSimulatorTab';
 import { OntologyEvolutionLabTab } from './components/OntologyEvolutionLabTab';
+import { DEFAULT_ONTOLOGY_JSONLD } from './defaultOntologyJsonLd';
+import { parseJsonLdOntology } from './ontologyParser';
 import {
   Activity,
   Cpu,
   GitBranch,
   Layers,
+  Network,
   ShieldCheck,
   Sparkles,
   Wand2,
 } from 'lucide-react';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'EXPLORER' | 'SIMULATOR' | 'EVOLUTION'>('EXPLORER');
-  const [rawJsonLd, setRawJsonLd] = useState<string>('');
-  const [metadata, setMetadata] = useState<OntologyMetadata | null>(null);
+  const [activeTab, setActiveTab] = useState<'VIEWER' | 'EXPLORER' | 'SIMULATOR' | 'EVOLUTION'>(
+    'VIEWER'
+  );
+  const [rawJsonLd, setRawJsonLd] = useState<string>(DEFAULT_ONTOLOGY_JSONLD);
+  const [metadata, setMetadata] = useState<OntologyMetadata | null>(() => {
+    try {
+      return parseJsonLdOntology(DEFAULT_ONTOLOGY_JSONLD).metadata;
+    } catch {
+      return null;
+    }
+  });
   const [derivedSdl, setDerivedSdl] = useState<string>('');
   const [riskCatalog, setRiskCatalog] = useState<RiskFactorCatalogItem[]>([]);
 
@@ -32,13 +44,19 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     const loadInitialSchema = async () => {
-      const res = await fetch('/api/v1/ontology/schema');
-      const data = await res.json();
-      setRawJsonLd(data.rawJsonLd);
-      setMetadata(data.metadata);
-      setDerivedSdl(data.derivedGraphQLSdl);
-      setRiskCatalog(data.riskFactorsCatalog || []);
-      await executePresetQuery(QUERY_PRESETS[0], QUERY_PRESETS[0].query);
+      try {
+        const res = await fetch('/api/v1/ontology/schema');
+        if (res.ok) {
+          const data = await res.json();
+          setRawJsonLd(data.rawJsonLd);
+          setMetadata(data.metadata);
+          setDerivedSdl(data.derivedGraphQLSdl);
+          setRiskCatalog(data.riskFactorsCatalog || []);
+        }
+        await executePresetQuery(QUERY_PRESETS[0], QUERY_PRESETS[0].query);
+      } catch {
+        // Fallback to embedded DEFAULT_ONTOLOGY_JSONLD if backend is not yet started
+      }
     };
     loadInitialSchema();
   }, []);
@@ -99,17 +117,28 @@ export const App: React.FC = () => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+        <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 flex-wrap">
           <button
-            onClick={() => setActiveTab('EXPLORER')}
+            onClick={() => setActiveTab('VIEWER')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
-              activeTab === 'EXPLORER'
+              activeTab === 'VIEWER'
                 ? 'bg-indigo-600 text-white shadow'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
+            <Network className="w-3.5 h-3.5" />
+            1. JSON-LD 온톨로지 뷰어 (Ontology Graph)
+          </button>
+          <button
+            onClick={() => setActiveTab('EXPLORER')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+              activeTab === 'EXPLORER'
+                ? 'bg-violet-600 text-white shadow'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
             <Layers className="w-3.5 h-3.5" />
-            1. Ontology ↔ GraphQL ↔ Lineage 3-Pane 비교
+            2. Ontology ↔ GraphQL ↔ Lineage 3-Pane 비교
           </button>
           <button
             onClick={() => setActiveTab('SIMULATOR')}
@@ -120,7 +149,7 @@ export const App: React.FC = () => {
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            2. 실시간 언더라이팅 & 리스크 심사 시뮬레이터
+            3. 실시간 언더라이팅 & 리스크 심사 시뮬레이터
           </button>
           <button
             onClick={() => setActiveTab('EVOLUTION')}
@@ -131,12 +160,12 @@ export const App: React.FC = () => {
             }`}
           >
             <Wand2 className="w-3.5 h-3.5" />
-            3. 온톨로지 스키마 진화 실험실 (Schema Evolution)
+            4. 온톨로지 스키마 진화 실험실 (Schema Evolution)
           </button>
         </div>
 
         {/* Status Badges */}
-        <div className="hidden xl:flex items-center gap-2 text-xs">
+        <div className="hidden 2xl:flex items-center gap-2 text-xs">
           <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-mono">
             <Cpu className="w-3.5 h-3.5" /> Spring GraphQL :8080
           </span>
@@ -153,6 +182,13 @@ export const App: React.FC = () => {
             <Sparkles className="w-5 h-5 animate-spin text-indigo-400" />
             JSON-LD / RDFS 온톨로지 및 도출된 GraphQL 스키마를 불러오는 중...
           </div>
+        ) : activeTab === 'VIEWER' ? (
+          <OntologyViewerTab
+            rawJsonLd={rawJsonLd}
+            metadata={metadata}
+            selectedClassName={selectedClassName}
+            onSelectClass={(clsName) => setSelectedClassName(clsName)}
+          />
         ) : activeTab === 'EXPLORER' ? (
           <div className="grid grid-cols-12 gap-4 h-full overflow-hidden">
             <div className="col-span-4 h-full overflow-hidden">
@@ -161,6 +197,7 @@ export const App: React.FC = () => {
                 selectedClassName={selectedClassName}
                 highlightedClasses={activePreset.highlightClasses}
                 onSelectClass={(clsName) => setSelectedClassName(clsName)}
+                onOpenFullViewer={() => setActiveTab('VIEWER')}
               />
             </div>
 
@@ -189,7 +226,15 @@ export const App: React.FC = () => {
         ) : activeTab === 'SIMULATOR' ? (
           <UnderwritingSimulatorTab riskCatalog={riskCatalog} />
         ) : (
-          <OntologyEvolutionLabTab initialJsonLd={rawJsonLd} initialSdl={derivedSdl} />
+          <OntologyEvolutionLabTab
+            initialJsonLd={rawJsonLd}
+            initialSdl={derivedSdl}
+            onOntologyUpdated={(newJsonLd, newMeta, newSdl) => {
+              setRawJsonLd(newJsonLd);
+              setMetadata(newMeta);
+              if (newSdl) setDerivedSdl(newSdl);
+            }}
+          />
         )}
       </main>
     </div>

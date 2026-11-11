@@ -1,12 +1,13 @@
 import React from 'react';
 import { OntologyClassDef, OntologyMetadata } from '../types';
-import { Database, GitBranch, Layers, ShieldAlert, FileCheck2, Package } from 'lucide-react';
+import { Database, GitBranch, Layers, ShieldAlert, FileCheck2, Package, Maximize2 } from 'lucide-react';
 
 interface Props {
   metadata: OntologyMetadata;
   selectedClassName: string;
   highlightedClasses: string[];
   onSelectClass: (className: string) => void;
+  onOpenFullViewer?: () => void;
 }
 
 const NODE_POSITIONS: Record<string, { x: number; y: number }> = {
@@ -55,6 +56,7 @@ export const OntologyGraphCanvas: React.FC<Props> = ({
   selectedClassName,
   highlightedClasses,
   onSelectClass,
+  onOpenFullViewer,
 }) => {
   const selectedClass: OntologyClassDef | undefined =
     metadata.classes.find((c) => c.localName === selectedClassName) || metadata.classes[0];
@@ -69,9 +71,22 @@ export const OntologyGraphCanvas: React.FC<Props> = ({
             1. JSON-LD / RDFS Ontology Graph
           </span>
         </div>
-        <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-          {metadata.classes.length} Classes · {metadata.properties.length} Properties
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+            {metadata.classes.length} Classes · {metadata.properties.length} Properties
+          </span>
+          {onOpenFullViewer && (
+            <button
+              type="button"
+              onClick={onOpenFullViewer}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white transition"
+              title="React Flow 기반 대화형 온톨로지 그래프 뷰어 열기"
+            >
+              <Maximize2 className="w-3 h-3" />
+              <span>Ontology Viewer</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Domain Legend */}

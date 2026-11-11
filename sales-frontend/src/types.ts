@@ -130,3 +130,55 @@ export interface GraphQLExecutionLog {
   timestamp: string;
   durationMs: number;
 }
+
+export interface OntologyPropertyDef {
+  uri: string;
+  localName: string;
+  label: string;
+  comment: string;
+  domainUri: string;
+  rangeUri: string;
+  graphqlType: string;
+  isObjectRelation: boolean;
+  isList: boolean;
+  required: boolean;
+  sourceField: string;
+  crossServiceJoin: string;
+}
+
+export interface OntologyClassDef {
+  uri: string;
+  localName: string;
+  label: string;
+  comment: string;
+  domain: 'Product' | 'Risk' | 'Underwriting' | string;
+  sourceService: string;
+  sourceEndpoint: string;
+  isRootQuery: boolean;
+  fields: OntologyPropertyDef[];
+}
+
+export interface OntologyGraphEdge {
+  id: string;
+  sourceClassUri: string;
+  sourceClassName: string;
+  propertyUri: string;
+  propertyName: string;
+  propertyLabel: string;
+  targetClassUri: string;
+  targetClassName: string;
+  isCrossService: boolean;
+  crossServiceName: string;
+}
+
+export interface OntologyMetadata {
+  ontologyId: string;
+  label: string;
+  comment: string;
+  version: string;
+  context: Record<string, string>;
+  classes: OntologyClassDef[];
+  properties: OntologyPropertyDef[];
+  objectEdges: OntologyGraphEdge[];
+}
+

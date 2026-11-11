@@ -16,6 +16,7 @@ import { CustomerSelectionPanel } from './components/CustomerSelectionPanel';
 import { ProductSelectionPanel } from './components/ProductSelectionPanel';
 import { UnderwritingActionAndResultPanel } from './components/UnderwritingActionAndResultPanel';
 import { CaseHistoryAndRuleModal } from './components/CaseHistoryAndRuleModal';
+import { OntologyViewerTab } from './components/OntologyViewerTab';
 import { formatKRW } from './formatters';
 import {
   AlertCircle,
@@ -25,6 +26,7 @@ import {
   ChevronRight,
   Code2,
   History,
+  Network,
   RefreshCw,
   ShieldCheck,
   Sparkles,
@@ -33,6 +35,7 @@ import {
 } from 'lucide-react';
 
 export const App: React.FC = () => {
+  const [mainView, setMainView] = useState<'WORKBENCH' | 'ONTOLOGY_VIEWER'>('WORKBENCH');
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
 
   const [products, setProducts] = useState<InsuranceProduct[]>([]);
@@ -271,7 +274,26 @@ export const App: React.FC = () => {
         </div>
 
         {/* Right Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() =>
+              setMainView((prev) => (prev === 'ONTOLOGY_VIEWER' ? 'WORKBENCH' : 'ONTOLOGY_VIEWER'))
+            }
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+              mainView === 'ONTOLOGY_VIEWER'
+                ? 'bg-emerald-600 text-white border-emerald-400 shadow-md'
+                : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/40'
+            }`}
+          >
+            <Network className="w-3.5 h-3.5" />
+            <span>
+              {mainView === 'ONTOLOGY_VIEWER'
+                ? '← 언더라이팅 워크벤치로 돌아가기'
+                : '온톨로지 뷰어 (Ontology Graph)'}
+            </span>
+          </button>
+
           <button
             type="button"
             onClick={() => setActiveModal('HISTORY')}
@@ -477,50 +499,56 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Main Wizard Step Viewport */}
-      <main className="flex-1 p-5 overflow-hidden max-w-7xl w-full mx-auto">
-        {isLoadingInit ? (
-          <div className="h-full flex flex-col items-center justify-center gap-3 text-slate-500">
-            <Sparkles className="w-7 h-7 animate-spin text-indigo-600" />
-            <div className="text-sm font-bold text-slate-700">
-              GraphQL 게이트웨이에서 상품 카탈로그 · 고객 프로필 · 심사 규칙을 불러오는 중입니다...
+      {/* Main Wizard Step Viewport or Ontology Graph Viewer */}
+      {mainView === 'ONTOLOGY_VIEWER' ? (
+        <main className="flex-1 p-4 overflow-hidden w-full">
+          <OntologyViewerTab />
+        </main>
+      ) : (
+        <main className="flex-1 p-5 overflow-hidden max-w-7xl w-full mx-auto">
+          {isLoadingInit ? (
+            <div className="h-full flex flex-col items-center justify-center gap-3 text-slate-500">
+              <Sparkles className="w-7 h-7 animate-spin text-indigo-600" />
+              <div className="text-sm font-bold text-slate-700">
+                GraphQL 게이트웨이에서 상품 카탈로그 · 고객 프로필 · 심사 규칙을 불러오는 중입니다...
+              </div>
             </div>
-          </div>
-        ) : wizardStep === 1 ? (
-          <CustomerSelectionPanel
-            applicants={applicants}
-            riskCatalog={RISK_FACTOR_MASTER_CATALOG}
-            selectedApplicantId={selectedApplicantId}
-            draftInput={draftInput}
-            onSelectApplicant={handleSelectApplicant}
-            onSwitchToCustomCustomer={handleSwitchToCustomCustomer}
-            onChangeDraftInput={setDraftInput}
-            onResetToSelectedApplicant={handleResetToSelectedApplicant}
-            onNextStep={() => setWizardStep(2)}
-          />
-        ) : wizardStep === 2 ? (
-          <ProductSelectionPanel
-            products={products}
-            selectedProductId={draftInput.productId}
-            draftInput={draftInput}
-            riskCatalog={RISK_FACTOR_MASTER_CATALOG}
-            onSelectProduct={handleSelectProduct}
-            onPrevStep={() => setWizardStep(1)}
-            onNextStep={handleProceedToUnderwritingStep}
-          />
-        ) : (
-          <UnderwritingActionAndResultPanel
-            draftInput={draftInput}
-            selectedProduct={selectedProduct}
-            activeCase={activeCase}
-            previousCaseForComparison={previousCaseForComparison}
-            isSimulating={isSimulating}
-            onRunUnderwriting={handleRunUnderwriting}
-            onPrevStep={() => setWizardStep(2)}
-            onRestartWizard={() => setWizardStep(1)}
-          />
-        )}
-      </main>
+          ) : wizardStep === 1 ? (
+            <CustomerSelectionPanel
+              applicants={applicants}
+              riskCatalog={RISK_FACTOR_MASTER_CATALOG}
+              selectedApplicantId={selectedApplicantId}
+              draftInput={draftInput}
+              onSelectApplicant={handleSelectApplicant}
+              onSwitchToCustomCustomer={handleSwitchToCustomCustomer}
+              onChangeDraftInput={setDraftInput}
+              onResetToSelectedApplicant={handleResetToSelectedApplicant}
+              onNextStep={() => setWizardStep(2)}
+            />
+          ) : wizardStep === 2 ? (
+            <ProductSelectionPanel
+              products={products}
+              selectedProductId={draftInput.productId}
+              draftInput={draftInput}
+              riskCatalog={RISK_FACTOR_MASTER_CATALOG}
+              onSelectProduct={handleSelectProduct}
+              onPrevStep={() => setWizardStep(1)}
+              onNextStep={handleProceedToUnderwritingStep}
+            />
+          ) : (
+            <UnderwritingActionAndResultPanel
+              draftInput={draftInput}
+              selectedProduct={selectedProduct}
+              activeCase={activeCase}
+              previousCaseForComparison={previousCaseForComparison}
+              isSimulating={isSimulating}
+              onRunUnderwriting={handleRunUnderwriting}
+              onPrevStep={() => setWizardStep(2)}
+              onRestartWizard={() => setWizardStep(1)}
+            />
+          )}
+        </main>
+      )}
 
       {/* Modals for History, Rules, and GraphQL/Lineage Inspector */}
       <CaseHistoryAndRuleModal

@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
 import { Code2, PlusCircle, RefreshCw, Sparkles, Wand2 } from 'lucide-react';
+import { OntologyMetadata } from '../types';
+import { parseJsonLdOntology } from '../ontologyParser';
 
 interface Props {
   initialJsonLd: string;
   initialSdl: string;
+  onOntologyUpdated?: (newJsonLd: string, newMetadata: OntologyMetadata, newSdl?: string) => void;
 }
 
-export const OntologyEvolutionLabTab: React.FC<Props> = ({ initialJsonLd, initialSdl }) => {
+export const OntologyEvolutionLabTab: React.FC<Props> = ({
+  initialJsonLd,
+  initialSdl,
+  onOntologyUpdated,
+}) => {
   const [jsonLdText, setJsonLdText] = useState(initialJsonLd);
   const [previewSdl, setPreviewSdl] = useState(initialSdl);
   const [stats, setStats] = useState<{ classCount: number; propertyCount: number; edgeCount: number }>({
@@ -21,24 +28,45 @@ export const OntologyEvolutionLabTab: React.FC<Props> = ({ initialJsonLd, initia
 
   const runTransformPreview = async (payloadJsonLd: string, customBanner?: string) => {
     setErrorMsg(null);
-    const res = await fetch('/api/v1/ontology/transform-preview', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonLd: payloadJsonLd }),
-    });
-    const json = await res.json();
-    if (!json.success) {
-      setErrorMsg(json.error || 'JSON-LD 파싱 오류');
-    } else {
-      setPreviewSdl(json.derivedGraphQLSdl);
+    try {
+      const localParsed = parseJsonLdOntology(payloadJsonLd);
       setStats({
-        classCount: json.classCount,
-        propertyCount: json.propertyCount,
-        edgeCount: json.edgeCount,
+        classCount: localParsed.metadata.classes.length,
+        propertyCount: localParsed.metadata.properties.length,
+        edgeCount: localParsed.metadata.objectEdges.length,
       });
+      onOntologyUpdated?.(payloadJsonLd, localParsed.metadata);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'JSON-LD 파싱 오류');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/v1/ontology/transform-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jsonLd: payloadJsonLd }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setErrorMsg(json.error || 'JSON-LD 파싱 오류');
+      } else {
+        setPreviewSdl(json.derivedGraphQLSdl);
+        setStats({
+          classCount: json.classCount,
+          propertyCount: json.propertyCount,
+          edgeCount: json.edgeCount,
+        });
+        onOntologyUpdated?.(payloadJsonLd, json.metadata, json.derivedGraphQLSdl);
+        setStatusMsg(
+          customBanner ||
+            `변환 완료: ${json.classCount}개 RDFS 클래스, ${json.propertyCount}개 프로퍼티로부터 GraphQL SDL이 자동 재생성되었습니다.`
+        );
+      }
+    } catch {
       setStatusMsg(
         customBanner ||
-          `변환 완료: ${json.classCount}개 RDFS 클래스, ${json.propertyCount}개 프로퍼티로부터 GraphQL SDL이 자동 재생성되었습니다.`
+          '온톨로지 JSON-LD가 업데이트되었습니다. (1. JSON-LD 온톨로지 뷰어 탭에서도 변경된 그래프를 확인할 수 있습니다.)'
       );
     }
   };
