@@ -25,29 +25,18 @@ import {
 } from '../types';
 import { expandUri, extractLocalName, parseJsonLdOntology } from '../ontologyParser';
 import { DEFAULT_ONTOLOGY_JSONLD } from '../defaultOntologyJsonLd';
+import { Language, translateOntologyNode, useLanguage } from '../i18n';
 import {
   ArrowRight,
-  Boxes,
-  CheckCircle2,
-  Code2,
   Database,
-  ExternalLink,
-  FileCode2,
   FileJson,
-  Filter,
   GitBranch,
   KeyRound,
   Layers,
-  LayoutGrid,
   Link2,
   Network,
-  Package,
   Search,
-  ShieldAlert,
-  Sparkles,
   Tag,
-  FileCheck2,
-  Eye,
 } from 'lucide-react';
 
 interface OntologyViewerTabProps {
@@ -73,6 +62,7 @@ const DOMAIN_THEME: Record<
     minimapColor: string;
     accentHex: string;
     koLabel: string;
+    enLabel: string;
   }
 > = {
   Product: {
@@ -84,6 +74,7 @@ const DOMAIN_THEME: Record<
     minimapColor: '#38bdf8',
     accentHex: '#38bdf8',
     koLabel: 'Product (상품)',
+    enLabel: 'Product',
   },
   Underwriting: {
     badgeBg: 'bg-violet-500/20 border-violet-500/40',
@@ -94,6 +85,7 @@ const DOMAIN_THEME: Record<
     minimapColor: '#a78bfa',
     accentHex: '#a78bfa',
     koLabel: 'Underwriting (인수심사)',
+    enLabel: 'Underwriting',
   },
   Risk: {
     badgeBg: 'bg-amber-500/20 border-amber-500/40',
@@ -104,11 +96,13 @@ const DOMAIN_THEME: Record<
     minimapColor: '#fbbf24',
     accentHex: '#fbbf24',
     koLabel: 'Risk (위험관리)',
+    enLabel: 'Risk',
   },
 };
 
 interface ClassNodeData extends Record<string, unknown> {
   cls: OntologyClassDef;
+  lang: Language;
   isSelected: boolean;
   selectedPropertyUri: string | null;
   layoutDirection: 'LR' | 'TB';
@@ -119,6 +113,7 @@ interface ClassNodeData extends Record<string, unknown> {
 interface PropertyNodeData extends Record<string, unknown> {
   prop: OntologyPropertyDef;
   ownerClass: OntologyClassDef;
+  lang: Language;
   isSelected: boolean;
   layoutDirection: 'LR' | 'TB';
   onSelectPropertyNode: (cls: OntologyClassDef, prop: OntologyPropertyDef) => void;
@@ -127,18 +122,21 @@ interface PropertyNodeData extends Record<string, unknown> {
 const OntologyClassFlowNode: React.FC<NodeProps<Node<ClassNodeData>>> = ({ data }) => {
   const {
     cls,
+    lang,
     isSelected,
     selectedPropertyUri,
     layoutDirection,
     onSelectClassNode,
     onSelectPropertyFromNode,
   } = data;
+  const isKo = lang === 'ko';
   const theme = DOMAIN_THEME[cls.domain] || DOMAIN_THEME.Product;
   const datatypeProps = cls.fields.filter((f) => !f.isObjectRelation);
   const relationProps = cls.fields.filter((f) => f.isObjectRelation);
 
   const targetPos = layoutDirection === 'LR' ? Position.Left : Position.Top;
   const sourcePos = layoutDirection === 'LR' ? Position.Right : Position.Bottom;
+  const clsLocalized = translateOntologyNode(cls.uri, cls.label, cls.comment, lang);
 
   return (
     <div
@@ -184,7 +182,7 @@ const OntologyClassFlowNode: React.FC<NodeProps<Node<ClassNodeData>>> = ({ data 
           </div>
           <span className="text-[10px] font-mono text-slate-400 shrink-0">rdfs:Class</span>
         </div>
-        <div className="text-[11px] text-slate-300 truncate">{cls.label}</div>
+        <div className="text-[11px] text-slate-300 truncate">{clsLocalized.label}</div>
       </div>
 
       {/* Node Property Preview List */}
@@ -195,7 +193,9 @@ const OntologyClassFlowNode: React.FC<NodeProps<Node<ClassNodeData>>> = ({ data 
             {cls.sourceService}
           </span>
           <span className="font-semibold text-indigo-300">
-            속성 {datatypeProps.length} · 관계 {relationProps.length}
+            {isKo
+              ? `속성 ${datatypeProps.length} · 관계 ${relationProps.length}`
+              : `Props ${datatypeProps.length} · Rels ${relationProps.length}`}
           </span>
         </div>
 
@@ -239,7 +239,9 @@ const OntologyClassFlowNode: React.FC<NodeProps<Node<ClassNodeData>>> = ({ data 
           })}
           {cls.fields.length > 6 && (
             <div className="text-center text-[10px] text-indigo-300/90 pt-0.5 font-medium">
-              + {cls.fields.length - 6}개 프로퍼티 더보기 (클릭)
+              {isKo
+                ? `+ ${cls.fields.length - 6}개 프로퍼티 더보기 (클릭)`
+                : `+ ${cls.fields.length - 6} more properties (click)`}
             </div>
           )}
         </div>
@@ -255,8 +257,9 @@ const OntologyClassFlowNode: React.FC<NodeProps<Node<ClassNodeData>>> = ({ data 
 };
 
 const OntologyPropertyFlowNode: React.FC<NodeProps<Node<PropertyNodeData>>> = ({ data }) => {
-  const { prop, ownerClass, isSelected, layoutDirection, onSelectPropertyNode } = data;
+  const { prop, ownerClass, lang, isSelected, layoutDirection, onSelectPropertyNode } = data;
   const targetPos = layoutDirection === 'LR' ? Position.Left : Position.Top;
+  const propLocalized = translateOntologyNode(prop.uri, prop.label, prop.comment, lang);
 
   return (
     <div
@@ -283,7 +286,9 @@ const OntologyPropertyFlowNode: React.FC<NodeProps<Node<PropertyNodeData>>> = ({
           {prop.rangeUri}
         </span>
       </div>
-      <div className="text-[11px] font-bold text-slate-100 mt-0.5 truncate">{prop.label}</div>
+      <div className="text-[11px] font-bold text-slate-100 mt-0.5 truncate">
+        {propLocalized.label}
+      </div>
       <div className="flex items-center justify-between text-[9.5px] text-slate-400 mt-1 font-mono">
         <span>src: {prop.sourceField}</span>
         <span>{prop.required ? 'Required' : 'Optional'}</span>
@@ -362,7 +367,11 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
   selectedClassName: externalSelectedClassName,
   onSelectClass: externalOnSelectClass,
 }) => {
-  const effectiveJsonLd = rawJsonLd && rawJsonLd.trim().length > 0 ? rawJsonLd : DEFAULT_ONTOLOGY_JSONLD;
+  const { lang } = useLanguage();
+  const isKo = lang === 'ko';
+
+  const effectiveJsonLd =
+    rawJsonLd && rawJsonLd.trim().length > 0 ? rawJsonLd : DEFAULT_ONTOLOGY_JSONLD;
 
   const parsedOntology = useMemo(() => {
     try {
@@ -380,7 +389,9 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
   const [graphMode, setGraphMode] = useState<GraphMode>('CLASS_ONLY');
   const [domainFilter, setDomainFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [propertyTypeFilter, setPropertyTypeFilter] = useState<'ALL' | 'DATATYPE' | 'OBJECT'>('ALL');
+  const [propertyTypeFilter, setPropertyTypeFilter] = useState<'ALL' | 'DATATYPE' | 'OBJECT'>(
+    'ALL'
+  );
   const [inspectorTab, setInspectorTab] = useState<InspectorSubTab>('PROPERTIES');
   const [showFullJsonModal, setShowFullJsonModal] = useState<boolean>(false);
 
@@ -430,18 +441,24 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
       }
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
+      const clsEn = translateOntologyNode(cls.uri, cls.label, cls.comment, 'en');
       const classMatch =
         cls.uri.toLowerCase().includes(q) ||
         cls.localName.toLowerCase().includes(q) ||
         cls.label.toLowerCase().includes(q) ||
-        cls.comment.toLowerCase().includes(q);
-      const propMatch = cls.fields.some(
-        (f) =>
+        cls.comment.toLowerCase().includes(q) ||
+        clsEn.label.toLowerCase().includes(q) ||
+        clsEn.comment.toLowerCase().includes(q);
+      const propMatch = cls.fields.some((f) => {
+        const propEn = translateOntologyNode(f.uri, f.label, f.comment, 'en');
+        return (
           f.uri.toLowerCase().includes(q) ||
           f.localName.toLowerCase().includes(q) ||
           f.label.toLowerCase().includes(q) ||
-          f.sourceField.toLowerCase().includes(q)
-      );
+          f.sourceField.toLowerCase().includes(q) ||
+          propEn.label.toLowerCase().includes(q)
+        );
+      });
       return classMatch || propMatch;
     });
   }, [metadata.classes, domainFilter, searchQuery]);
@@ -462,6 +479,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
         position: swimlanePos,
         data: {
           cls,
+          lang,
           isSelected: cls.uri === selectedClass?.uri,
           selectedPropertyUri: selectedProperty?.uri || null,
           layoutDirection: layoutDir,
@@ -486,11 +504,18 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
           ? '#818cf8'
           : '#64748b';
 
+        const edgePropLocalized = translateOntologyNode(
+          edge.propertyUri,
+          edge.propertyLabel,
+          '',
+          lang
+        );
+
         return {
           id: edge.id,
           source: edge.sourceClassUri,
           target: edge.targetClassUri,
-          label: `${edge.propertyUri} (${edge.propertyLabel})`,
+          label: `${edge.propertyUri} (${edgePropLocalized.label})`,
           animated: edge.isCrossService || isEdgeSelected,
           style: {
             stroke: strokeColor,
@@ -539,6 +564,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
             data: {
               prop,
               ownerClass: cls,
+              lang,
               isSelected: selectedProperty?.uri === prop.uri,
               layoutDirection: layoutDir,
               onSelectPropertyNode: handleSelectProperty,
@@ -589,6 +615,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
     selectedProperty,
     layoutMode,
     graphMode,
+    lang,
     handleSelectClass,
     handleSelectProperty,
   ]);
@@ -622,12 +649,15 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
       if (propertyTypeFilter === 'OBJECT' && !f.isObjectRelation) return false;
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
+      const propEn = translateOntologyNode(f.uri, f.label, f.comment, 'en');
       return (
         f.uri.toLowerCase().includes(q) ||
         f.localName.toLowerCase().includes(q) ||
         f.label.toLowerCase().includes(q) ||
         f.comment.toLowerCase().includes(q) ||
-        f.sourceField.toLowerCase().includes(q)
+        f.sourceField.toLowerCase().includes(q) ||
+        propEn.label.toLowerCase().includes(q) ||
+        propEn.comment.toLowerCase().includes(q)
       );
     });
   }, [selectedClass, propertyTypeFilter, searchQuery]);
@@ -661,6 +691,31 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
     return rawJsonObj;
   }, [selectedClass, selectedProperty, rawNodeMap, metadata.context, rawJsonObj]);
 
+  const selectedClassLocalized = selectedClass
+    ? translateOntologyNode(
+        selectedClass.uri,
+        selectedClass.label,
+        selectedClass.comment,
+        lang
+      )
+    : { label: '', comment: '' };
+
+  const selectedPropertyLocalized = selectedProperty
+    ? translateOntologyNode(
+        selectedProperty.uri,
+        selectedProperty.label,
+        selectedProperty.comment,
+        lang
+      )
+    : null;
+
+  const ontologyMetaLocalized = translateOntologyNode(
+    metadata.ontologyId,
+    metadata.label,
+    metadata.comment,
+    lang
+  );
+
   return (
     <div className="h-full w-full flex flex-col bg-slate-950 text-slate-100 rounded-xl border border-slate-800 overflow-hidden">
       {/* Top Toolbar */}
@@ -672,7 +727,9 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-extrabold text-white">
-                JSON-LD 온톨로지 그래프 뷰어 (Interactive Ontology Viewer)
+                {isKo
+                  ? 'JSON-LD 온톨로지 그래프 뷰어 (Interactive Ontology Viewer)'
+                  : 'JSON-LD Interactive Ontology Graph Viewer'}
               </h2>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                 Open-Source: @xyflow/react + @dagrejs/dagre
@@ -682,10 +739,21 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              <code className="text-indigo-300">insurance-ontology.jsonld</code> · 총{' '}
-              <strong className="text-white">{metadata.classes.length}개</strong> RDFS 클래스,{' '}
-              <strong className="text-white">{metadata.properties.length}개</strong> RDF 프로퍼티,{' '}
-              <strong className="text-white">{metadata.objectEdges.length}개</strong> 객체 관계 엣지 — 노드를 클릭하면 우측에 상세 프로퍼티가 표시됩니다.
+              {isKo ? (
+                <>
+                  <code className="text-indigo-300">insurance-ontology.jsonld</code> · 총{' '}
+                  <strong className="text-white">{metadata.classes.length}개</strong> RDFS 클래스,{' '}
+                  <strong className="text-white">{metadata.properties.length}개</strong> RDF 프로퍼티,{' '}
+                  <strong className="text-white">{metadata.objectEdges.length}개</strong> 객체 관계 엣지 — 노드를 클릭하면 우측에 상세 프로퍼티가 표시됩니다.
+                </>
+              ) : (
+                <>
+                  <code className="text-indigo-300">insurance-ontology.jsonld</code> · Total{' '}
+                  <strong className="text-white">{metadata.classes.length}</strong> RDFS Classes,{' '}
+                  <strong className="text-white">{metadata.properties.length}</strong> RDF Properties,{' '}
+                  <strong className="text-white">{metadata.objectEdges.length}</strong> Object Edges — Click any node to inspect details on the right.
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -699,7 +767,11 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="클래스 / 프로퍼티 / 원천필드 검색..."
+              placeholder={
+                isKo
+                  ? '클래스 / 프로퍼티 / 원천필드 검색...'
+                  : 'Search classes / properties / fields...'
+              }
               className="pl-8 pr-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-52"
             />
           </div>
@@ -717,7 +789,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {dom === 'ALL' ? '전체 도메인' : dom}
+                {dom === 'ALL' ? (isKo ? '전체 도메인' : 'All Domains') : dom}
               </button>
             ))}
           </div>
@@ -733,7 +805,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Dagre (좌→우)
+              {isKo ? 'Dagre (좌→우)' : 'Dagre (L→R)'}
             </button>
             <button
               type="button"
@@ -744,7 +816,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Dagre (상→하)
+              {isKo ? 'Dagre (상→하)' : 'Dagre (T→B)'}
             </button>
             <button
               type="button"
@@ -755,7 +827,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              도메인 그리드
+              {isKo ? '도메인 그리드' : 'Domain Grid'}
             </button>
           </div>
 
@@ -770,7 +842,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              클래스 노드 뷰
+              {isKo ? '클래스 노드 뷰' : 'Class Nodes Only'}
             </button>
             <button
               type="button"
@@ -781,7 +853,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              선택 클래스 속성노드 펼치기
+              {isKo ? '선택 클래스 속성노드 펼치기' : 'Expand Selected Class Props'}
             </button>
           </div>
 
@@ -792,7 +864,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition"
           >
             <FileJson className="w-3.5 h-3.5 text-amber-400" />
-            <span>JSON-LD 원문</span>
+            <span>{isKo ? 'JSON-LD 원문' : 'Raw JSON-LD'}</span>
           </button>
         </div>
       </div>
@@ -843,25 +915,26 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
             >
               <div className="font-bold text-slate-200 flex items-center gap-1.5 text-[11px]">
                 <Layers className="w-3.5 h-3.5 text-indigo-400" />
-                온톨로지 도메인 & 관계 범례
+                {isKo ? '온톨로지 도메인 & 관계 범례' : 'Ontology Domains & Edge Legend'}
               </div>
               <div className="flex flex-wrap items-center gap-2.5 text-[11px]">
                 <span className="flex items-center gap-1 text-sky-300">
                   <span className="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block" />
-                  Product (상품)
+                  {isKo ? 'Product (상품)' : 'Product'}
                 </span>
                 <span className="flex items-center gap-1 text-violet-300">
                   <span className="w-2.5 h-2.5 rounded-full bg-violet-400 inline-block" />
-                  Underwriting (심사)
+                  {isKo ? 'Underwriting (심사)' : 'Underwriting'}
                 </span>
                 <span className="flex items-center gap-1 text-amber-300">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
-                  Risk (위험)
+                  {isKo ? 'Risk (위험)' : 'Risk'}
                 </span>
               </div>
               <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1 border-t border-slate-800">
                 <span className="flex items-center gap-1">
-                  <span className="w-4 h-0.5 bg-slate-400 inline-block" /> 도메인 내부 참조
+                  <span className="w-4 h-0.5 bg-slate-400 inline-block" />{' '}
+                  {isKo ? '도메인 내부 참조' : 'Intra-Domain Ref'}
                 </span>
                 <span className="flex items-center gap-1 text-pink-300">
                   <span className="w-4 h-0.5 border-b-2 border-dashed border-pink-400 inline-block" />{' '}
@@ -876,7 +949,9 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
               className="bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-xl p-2 shadow-lg max-w-[360px]"
             >
               <div className="text-[10px] font-semibold text-slate-400 mb-1 px-1">
-                빠른 클래스 노드 선택 ({metadata.classes.length}개 RDFS Class)
+                {isKo
+                  ? `빠른 클래스 노드 선택 (${metadata.classes.length}개 RDFS Class)`
+                  : `Quick Class Jump (${metadata.classes.length} RDFS Classes)`}
               </div>
               <div className="flex flex-wrap gap-1">
                 {metadata.classes.map((cls) => {
@@ -930,7 +1005,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                     <h3 className="text-base font-extrabold text-white mt-1.5 flex items-center gap-2">
                       <span>{selectedClass.uri}</span>
                       <span className="text-xs font-normal text-slate-400">
-                        ({selectedClass.label})
+                        ({selectedClassLocalized.label})
                       </span>
                     </h3>
                     <div className="text-[10px] font-mono text-slate-400 mt-0.5 truncate">
@@ -941,20 +1016,28 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
 
                 {/* Comment description */}
                 <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/80 p-2.5 rounded-lg border border-slate-800">
-                  {selectedClass.comment}
+                  {selectedClassLocalized.comment}
                 </p>
 
                 {/* Source Service & Endpoint Metadata */}
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="p-2 rounded-lg bg-slate-950/70 border border-slate-800/90">
-                    <div className="text-[10px] text-slate-400">원천 마이크로서비스 (ins:sourceService)</div>
+                    <div className="text-[10px] text-slate-400">
+                      {isKo
+                        ? '원천 마이크로서비스 (ins:sourceService)'
+                        : 'Source Microservice (ins:sourceService)'}
+                    </div>
                     <div className="font-mono text-emerald-300 font-semibold mt-0.5 flex items-center gap-1">
                       <Database className="w-3.5 h-3.5 shrink-0" />
                       <span className="truncate">{selectedClass.sourceService}</span>
                     </div>
                   </div>
                   <div className="p-2 rounded-lg bg-slate-950/70 border border-slate-800/90">
-                    <div className="text-[10px] text-slate-400">원천 엔드포인트 (ins:sourceEndpoint)</div>
+                    <div className="text-[10px] text-slate-400">
+                      {isKo
+                        ? '원천 엔드포인트 (ins:sourceEndpoint)'
+                        : 'Source Endpoint (ins:sourceEndpoint)'}
+                    </div>
                     <div className="font-mono text-amber-300 text-[11px] font-medium mt-0.5 truncate">
                       {selectedClass.sourceEndpoint}
                     </div>
@@ -973,7 +1056,9 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                           : 'text-slate-400 hover:text-slate-200'
                       }`}
                     >
-                      프로퍼티 목록 ({selectedClass.fields.length})
+                      {isKo
+                        ? `프로퍼티 목록 (${selectedClass.fields.length})`
+                        : `Properties (${selectedClass.fields.length})`}
                     </button>
                     <button
                       type="button"
@@ -984,7 +1069,9 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                           : 'text-slate-400 hover:text-slate-200'
                       }`}
                     >
-                      연결 관계 ({outgoingEdges.length + incomingEdges.length})
+                      {isKo
+                        ? `연결 관계 (${outgoingEdges.length + incomingEdges.length})`
+                        : `Relations (${outgoingEdges.length + incomingEdges.length})`}
                     </button>
                     <button
                       type="button"
@@ -995,7 +1082,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                           : 'text-slate-400 hover:text-slate-200'
                       }`}
                     >
-                      JSON-LD 노드 원문
+                      {isKo ? 'JSON-LD 노드 원문' : 'Node JSON-LD'}
                     </button>
                   </div>
 
@@ -1012,7 +1099,17 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                               : 'text-slate-400 border-transparent hover:text-slate-200'
                           }`}
                         >
-                          {ft === 'ALL' ? '전체' : ft === 'DATATYPE' ? '스칼라(xsd)' : '객체참조(ins)'}
+                          {ft === 'ALL'
+                            ? isKo
+                              ? '전체'
+                              : 'All'
+                            : ft === 'DATATYPE'
+                            ? isKo
+                              ? '스칼라(xsd)'
+                              : 'Scalar (xsd)'
+                            : isKo
+                            ? '객체참조(ins)'
+                            : 'Object (ins)'}
                         </button>
                       ))}
                     </div>
@@ -1021,12 +1118,12 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
               </div>
 
               {/* Selected Individual Property Spotlight Card (when a property is clicked) */}
-              {selectedProperty && (
+              {selectedProperty && selectedPropertyLocalized && (
                 <div className="mx-4 mt-3 p-3.5 rounded-xl bg-indigo-950/50 border-2 border-indigo-500/60 space-y-2 shrink-0 shadow-lg">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
                       <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                        @type: rdf:Property 상세
+                        {isKo ? '@type: rdf:Property 상세' : '@type: rdf:Property Detail'}
                       </span>
                       <span className="font-mono text-xs font-extrabold text-white">
                         {selectedProperty.uri}
@@ -1037,23 +1134,29 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                       onClick={() => setSelectedProperty(null)}
                       className="text-[11px] text-slate-400 hover:text-white px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700"
                     >
-                      닫기 ✕
+                      {isKo ? '닫기 ✕' : 'Close ✕'}
                     </button>
                   </div>
 
                   <div className="text-xs font-bold text-indigo-200">
-                    {selectedProperty.label}{' '}
-                    <span className="font-normal text-slate-300">— {selectedProperty.comment}</span>
+                    {selectedPropertyLocalized.label}{' '}
+                    <span className="font-normal text-slate-300">
+                      — {selectedPropertyLocalized.comment}
+                    </span>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px] font-mono pt-1">
                     <div className="p-1.5 rounded bg-slate-950/90 border border-slate-800">
                       <span className="text-slate-400 block text-[9.5px]">rdfs:domain</span>
-                      <span className="text-indigo-300 font-semibold">{selectedProperty.domainUri}</span>
+                      <span className="text-indigo-300 font-semibold">
+                        {selectedProperty.domainUri}
+                      </span>
                     </div>
                     <div className="p-1.5 rounded bg-slate-950/90 border border-slate-800">
                       <span className="text-slate-400 block text-[9.5px]">rdfs:range</span>
-                      <span className="text-amber-300 font-semibold">{selectedProperty.rangeUri}</span>
+                      <span className="text-amber-300 font-semibold">
+                        {selectedProperty.rangeUri}
+                      </span>
                     </div>
                     <div className="p-1.5 rounded bg-slate-950/90 border border-slate-800">
                       <span className="text-slate-400 block text-[9.5px]">GraphQL Type</span>
@@ -1066,16 +1169,33 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                       <span className="text-slate-200">{selectedProperty.sourceField}</span>
                     </div>
                     <div className="p-1.5 rounded bg-slate-950/90 border border-slate-800">
-                      <span className="text-slate-400 block text-[9.5px]">ins:required / isList</span>
+                      <span className="text-slate-400 block text-[9.5px]">
+                        ins:required / isList
+                      </span>
                       <span className="text-slate-200">
-                        {selectedProperty.required ? ' 필수(true)' : '선택(false)'} ·{' '}
-                        {selectedProperty.isList ? '배열(List)' : '단건'}
+                        {selectedProperty.required
+                          ? isKo
+                            ? ' 필수(true)'
+                            : 'Required (true)'
+                          : isKo
+                          ? '선택(false)'
+                          : 'Optional (false)'}{' '}
+                        ·{' '}
+                        {selectedProperty.isList
+                          ? isKo
+                            ? '배열(List)'
+                            : 'List'
+                          : isKo
+                          ? '단건'
+                          : 'Single'}
                       </span>
                     </div>
                     {selectedProperty.isObjectRelation && (
                       <div className="p-1.5 rounded bg-slate-950/90 border border-slate-800 flex items-center justify-between">
                         <div>
-                          <span className="text-slate-400 block text-[9.5px]">참조 대상 이동</span>
+                          <span className="text-slate-400 block text-[9.5px]">
+                            {isKo ? '참조 대상 이동' : 'Jump to Target'}
+                          </span>
                           <span className="text-pink-300 font-semibold">
                             {extractLocalName(selectedProperty.rangeUri)}
                           </span>
@@ -1089,7 +1209,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                             if (targetCls) handleSelectClass(targetCls);
                           }}
                           className="p-1 rounded bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-500/40"
-                          title="대상 클래스 노드로 이동"
+                          title={isKo ? '대상 클래스 노드로 이동' : 'Jump to target class node'}
                         >
                           <ArrowRight className="w-3.5 h-3.5" />
                         </button>
@@ -1108,6 +1228,12 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                       const targetCls = prop.isObjectRelation
                         ? metadata.classes.find((c) => c.uri === prop.rangeUri)
                         : undefined;
+                      const propLocalized = translateOntologyNode(
+                        prop.uri,
+                        prop.label,
+                        prop.comment,
+                        lang
+                      );
 
                       return (
                         <div
@@ -1126,7 +1252,9 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                               <span className="font-mono text-xs font-bold text-indigo-300">
                                 {prop.uri}
                               </span>
-                              <span className="text-xs font-bold text-white">{prop.label}</span>
+                              <span className="text-xs font-bold text-white">
+                                {propLocalized.label}
+                              </span>
                               {prop.required && (
                                 <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
                                   required
@@ -1150,7 +1278,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                           </div>
 
                           <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                            {prop.comment}
+                            {propLocalized.comment}
                           </p>
 
                           <div className="mt-2 pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
@@ -1175,7 +1303,11 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                                 }}
                                 className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold text-pink-300 hover:text-pink-200 bg-pink-500/15 px-2 py-0.5 rounded border border-pink-500/30"
                               >
-                                <span>{targetCls.localName} 노드로 이동</span>
+                                <span>
+                                  {isKo
+                                    ? `${targetCls.localName} 노드로 이동`
+                                    : `Go to ${targetCls.localName}`}
+                                </span>
                                 <ArrowRight className="w-3 h-3" />
                               </button>
                             )}
@@ -1191,18 +1323,27 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                     <div>
                       <h4 className="text-xs font-bold text-indigo-300 mb-2 flex items-center gap-1.5">
                         <ArrowRight className="w-3.5 h-3.5" />
-                        나가는 객체 참조 (Outgoing Object Properties · rdfs:domain ={' '}
-                        {selectedClass.uri})
+                        {isKo
+                          ? `나가는 객체 참조 (Outgoing Object Properties · rdfs:domain = ${selectedClass.uri})`
+                          : `Outgoing Object Properties (rdfs:domain = ${selectedClass.uri})`}
                       </h4>
                       {outgoingEdges.length === 0 ? (
                         <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-500">
-                          이 클래스에서 다른 클래스로 나가는 객체 참조 프로퍼티가 없습니다 (리프 엔티티).
+                          {isKo
+                            ? '이 클래스에서 다른 클래스로 나가는 객체 참조 프로퍼티가 없습니다 (리프 엔티티).'
+                            : 'No outgoing object reference properties from this class (Leaf Entity).'}
                         </div>
                       ) : (
                         <div className="space-y-2">
                           {outgoingEdges.map((edge) => {
                             const tgt = metadata.classes.find(
                               (c) => c.uri === edge.targetClassUri
+                            );
+                            const edgeLocalized = translateOntologyNode(
+                              edge.propertyUri,
+                              edge.propertyLabel,
+                              '',
+                              lang
                             );
                             return (
                               <div
@@ -1215,7 +1356,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                                       {edge.propertyUri}
                                     </span>
                                     <span className="text-xs text-slate-300">
-                                      ({edge.propertyLabel})
+                                      ({edgeLocalized.label})
                                     </span>
                                     {edge.isCrossService && (
                                       <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-300 border border-pink-500/30">
@@ -1236,7 +1377,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                                     onClick={() => handleSelectClass(tgt)}
                                     className="px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 text-xs font-semibold shrink-0"
                                   >
-                                    {tgt.localName} 보기 →
+                                    {isKo ? `${tgt.localName} 보기 →` : `View ${tgt.localName} →`}
                                   </button>
                                 )}
                               </div>
@@ -1249,18 +1390,27 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                     <div>
                       <h4 className="text-xs font-bold text-emerald-300 mb-2 flex items-center gap-1.5">
                         <GitBranch className="w-3.5 h-3.5" />
-                        들어오는 객체 참조 (Incoming Object Properties · rdfs:range ={' '}
-                        {selectedClass.uri})
+                        {isKo
+                          ? `들어오는 객체 참조 (Incoming Object Properties · rdfs:range = ${selectedClass.uri})`
+                          : `Incoming Object Properties (rdfs:range = ${selectedClass.uri})`}
                       </h4>
                       {incomingEdges.length === 0 ? (
                         <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-500">
-                          다른 클래스에서 이 클래스를 참조하는 프로퍼티가 없습니다 (루트 엔티티).
+                          {isKo
+                            ? '다른 클래스에서 이 클래스를 참조하는 프로퍼티가 없습니다 (루트 엔티티).'
+                            : 'No incoming object reference properties pointing to this class (Root Entity).'}
                         </div>
                       ) : (
                         <div className="space-y-2">
                           {incomingEdges.map((edge) => {
                             const src = metadata.classes.find(
                               (c) => c.uri === edge.sourceClassUri
+                            );
+                            const edgeLocalized = translateOntologyNode(
+                              edge.propertyUri,
+                              edge.propertyLabel,
+                              '',
+                              lang
                             );
                             return (
                               <div
@@ -1273,7 +1423,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                                       {edge.propertyUri}
                                     </span>
                                     <span className="text-xs text-slate-300">
-                                      ({edge.propertyLabel})
+                                      ({edgeLocalized.label})
                                     </span>
                                   </div>
                                   <div className="text-[11px] font-mono text-slate-400 mt-1">
@@ -1289,7 +1439,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                                     onClick={() => handleSelectClass(src)}
                                     className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold shrink-0"
                                   >
-                                    ← {src.localName} 보기
+                                    {isKo ? `← ${src.localName} 보기` : `← View ${src.localName}`}
                                   </button>
                                 )}
                               </div>
@@ -1305,8 +1455,19 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs text-slate-400">
                       <span>
-                        선택된 노드({selectedProperty ? selectedProperty.uri : selectedClass.uri})의{' '}
-                        <code className="text-amber-300">insurance-ontology.jsonld</code> 원문 조각
+                        {isKo ? (
+                          <>
+                            선택된 노드(
+                            {selectedProperty ? selectedProperty.uri : selectedClass.uri})의{' '}
+                            <code className="text-amber-300">insurance-ontology.jsonld</code> 원문 조각
+                          </>
+                        ) : (
+                          <>
+                            Raw <code className="text-amber-300">insurance-ontology.jsonld</code>{' '}
+                            snippet for selected node (
+                            {selectedProperty ? selectedProperty.uri : selectedClass.uri})
+                          </>
+                        )}
                       </span>
                       {selectedProperty && (
                         <button
@@ -1314,7 +1475,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                           onClick={() => setSelectedProperty(null)}
                           className="text-indigo-400 hover:underline text-[11px]"
                         >
-                          클래스 전체 JSON-LD 보기
+                          {isKo ? '클래스 전체 JSON-LD 보기' : 'View Full Class JSON-LD'}
                         </button>
                       )}
                     </div>
@@ -1338,10 +1499,12 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                 <FileJson className="w-5 h-5 text-amber-400" />
                 <div>
                   <h3 className="text-sm font-bold text-white">
-                    backend/src/main/resources/ontology/insurance-ontology.jsonld 전체 원문
+                    {isKo
+                      ? 'backend/src/main/resources/ontology/insurance-ontology.jsonld 전체 원문'
+                      : 'backend/src/main/resources/ontology/insurance-ontology.jsonld Full Source'}
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    {metadata.label} · {metadata.classes.length} Classes ·{' '}
+                    {ontologyMetaLocalized.label} · {metadata.classes.length} Classes ·{' '}
                     {metadata.properties.length} Properties
                   </p>
                 </div>
@@ -1351,7 +1514,7 @@ export const OntologyViewerTab: React.FC<OntologyViewerTabProps> = ({
                 onClick={() => setShowFullJsonModal(false)}
                 className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
               >
-                닫기 ✕
+                {isKo ? '닫기 ✕' : 'Close ✕'}
               </button>
             </div>
             <div className="flex-1 overflow-auto p-5 bg-slate-950">

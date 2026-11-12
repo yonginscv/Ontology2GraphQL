@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { ApplicantProfile, RiskFactor, UnderwritingSimulationInput } from '../types';
 import { RISK_CATEGORY_META, RISK_GRADE_META } from '../formatters';
 import {
+  translateApplicantName,
+  translateOccupationName,
+  translateRiskClinicalNote,
+  translateRiskFactorName,
+  useLanguage,
+} from '../i18n';
+import {
   ArrowRight,
   Briefcase,
   Cigarette,
@@ -39,6 +46,9 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
   onResetToSelectedApplicant,
   onNextStep,
 }) => {
+  const { lang } = useLanguage();
+  const isKo = lang === 'ko';
+
   const [searchKeyword, setSearchKeyword] = useState('');
   const [showProfileEditor, setShowProfileEditor] = useState(false);
 
@@ -48,11 +58,21 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
   const filteredApplicants = applicants.filter((a) => {
     const q = searchKeyword.trim().toLowerCase();
     if (!q) return true;
+    const enName = translateApplicantName(a.applicantId, a.applicantName, 'en').toLowerCase();
+    const enOcc = translateOccupationName(a.occupationName, 'en').toLowerCase();
     return (
       a.applicantName.toLowerCase().includes(q) ||
+      enName.includes(q) ||
       a.occupationName.toLowerCase().includes(q) ||
+      enOcc.includes(q) ||
       a.applicantId.toLowerCase().includes(q) ||
-      a.hasRiskFactor.some((rf) => rf.factorName.toLowerCase().includes(q))
+      a.hasRiskFactor.some(
+        (rf) =>
+          rf.factorName.toLowerCase().includes(q) ||
+          translateRiskFactorName(rf.factorCode, rf.factorName, 'en')
+            .toLowerCase()
+            .includes(q)
+      )
     );
   });
 
@@ -129,6 +149,16 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
     });
   };
 
+  const displayedDraftName = translateApplicantName(
+    selectedApplicantId,
+    draftInput.applicantName,
+    lang
+  );
+  const displayedDraftOccupation = translateOccupationName(
+    draftInput.occupationName,
+    lang
+  );
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full overflow-hidden">
       {/* Step Header */}
@@ -139,10 +169,20 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
           </span>
           <div>
             <h2 className="text-base font-extrabold text-slate-900">
-              피보험자(고객) 선택 및 계약 전 알릴 의무(고지사항) 구성
+              {isKo
+                ? '피보험자(고객) 선택 및 계약 전 알릴 의무(고지사항) 구성'
+                : 'Select Insured Customer & Configure Pre-Contract Disclosures'}
             </h2>
             <p className="text-xs text-slate-500">
-              등록된 고객 프로필(<code className="text-indigo-600 font-mono">applicantProfiles</code>)을 선택하거나 신규 고객의 인적사항·위험요소를 구성한 뒤 다음 단계로 이동하세요.
+              {isKo ? (
+                <>
+                  등록된 고객 프로필(<code className="text-indigo-600 font-mono">applicantProfiles</code>)을 선택하거나 신규 고객의 인적사항·위험요소를 구성한 뒤 다음 단계로 이동하세요.
+                </>
+              ) : (
+                <>
+                  Select a registered customer profile (<code className="text-indigo-600 font-mono">applicantProfiles</code>) or configure a new prospect&apos;s demographics and risk factors before proceeding.
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -163,7 +203,9 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            등록 고객 선택 ({applicants.length}명)
+            {isKo
+              ? `등록 고객 선택 (${applicants.length}명)`
+              : `Registered Customers (${applicants.length})`}
           </button>
           <button
             type="button"
@@ -178,7 +220,7 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
             }`}
           >
             <UserPlus className="w-3.5 h-3.5" />
-            신규 가망고객 직접입력
+            {isKo ? '신규 가망고객 직접입력' : 'Custom Prospect Input'}
           </button>
         </div>
       </div>
@@ -192,10 +234,14 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    1-A. 등록 피보험자 목록
+                    {isKo
+                      ? '1-A. 등록 피보험자 목록'
+                      : '1-A. Registered Insured Applicants'}
                   </h3>
                   <span className="text-[11px] text-slate-400">
-                    클릭하여 심사 대상 고객을 선택하세요
+                    {isKo
+                      ? '클릭하여 심사 대상 고객을 선택하세요'
+                      : 'Click a card to select the target applicant'}
                   </span>
                 </div>
 
@@ -205,7 +251,11 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                     type="text"
                     value={searchKeyword}
                     onChange={(e) => setSearchKeyword(e.target.value)}
-                    placeholder="고객명, 직업명, 보유 질환(고혈압, 당뇨 등) 검색..."
+                    placeholder={
+                      isKo
+                        ? '고객명, 직업명, 보유 질환(고혈압, 당뇨 등) 검색...'
+                        : 'Search by customer name, occupation, or condition (e.g., Hypertension, Diabetes)...'
+                    }
                     className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   />
                 </div>
@@ -216,6 +266,12 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                     const gMeta =
                       RISK_GRADE_META[appl.riskAssessment.riskGrade] ||
                       RISK_GRADE_META.STANDARD;
+                    const applName = translateApplicantName(
+                      appl.applicantId,
+                      appl.applicantName,
+                      lang
+                    );
+                    const applOcc = translateOccupationName(appl.occupationName, lang);
 
                     return (
                       <button
@@ -237,21 +293,23 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                                   : 'bg-slate-100 text-slate-700'
                               }`}
                             >
-                              {appl.applicantName.slice(0, 1)}
+                              {applName.slice(0, 1)}
                             </div>
                             <div>
                               <div className="flex items-center gap-1.5">
                                 <span className="font-extrabold text-sm text-slate-900">
-                                  {appl.applicantName}
+                                  {applName}
                                 </span>
                                 <span className="text-xs text-slate-500">
-                                  ({appl.age}세·{appl.gender === 'M' ? '남' : '여'})
+                                  {isKo
+                                    ? `(${appl.age}세·${appl.gender === 'M' ? '남' : '여'})`
+                                    : `(${appl.age}y·${appl.gender})`}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1 text-[11px] text-slate-600 mt-0.5">
                                 <Briefcase className="w-3 h-3 text-slate-400 shrink-0" />
                                 <span className="truncate max-w-[120px]">
-                                  {appl.occupationName}
+                                  {applOcc}
                                 </span>
                                 <span
                                   className={`text-[10px] px-1.5 py-0.2 rounded font-semibold shrink-0 ${
@@ -260,7 +318,7 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                                       : 'bg-slate-100 text-slate-600'
                                   }`}
                                 >
-                                  {appl.occupationGrade}급
+                                  {isKo ? `${appl.occupationGrade}급` : `Gr.${appl.occupationGrade}`}
                                 </span>
                               </div>
                             </div>
@@ -269,27 +327,37 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                           <span
                             className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${gMeta.badgeClass}`}
                           >
-                            {appl.riskAssessment.totalRiskScore}점
+                            {isKo
+                              ? `${appl.riskAssessment.totalRiskScore}점`
+                              : `${appl.riskAssessment.totalRiskScore} pts`}
                           </span>
                         </div>
 
                         <div className="mt-2.5 flex flex-wrap items-center gap-1">
                           {appl.isSmoker && (
                             <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 font-medium">
-                              <Cigarette className="w-2.5 h-2.5" /> 흡연
+                              <Cigarette className="w-2.5 h-2.5" />{' '}
+                              {isKo ? '흡연' : 'Smoker'}
                             </span>
                           )}
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
                             BMI {appl.bmi}
                           </span>
-                          {appl.hasRiskFactor.map((rf) => (
-                            <span
-                              key={rf.riskFactorId}
-                              className="text-[10px] px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-medium"
-                            >
-                              {rf.factorName.split(' (')[0]}
-                            </span>
-                          ))}
+                          {appl.hasRiskFactor.map((rf) => {
+                            const rfLabel = translateRiskFactorName(
+                              rf.factorCode,
+                              rf.factorName,
+                              lang
+                            ).split(' (')[0];
+                            return (
+                              <span
+                                key={rf.riskFactorId}
+                                className="text-[10px] px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-medium"
+                              >
+                                {rfLabel}
+                              </span>
+                            );
+                          })}
                         </div>
                       </button>
                     );
@@ -304,11 +372,13 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                 <div className="flex items-center gap-2">
                   <UserCheck className="w-4 h-4 text-indigo-600" />
                   <span className="text-xs font-extrabold text-slate-800">
-                    선택된 청약 피보험자 프로필 & 예상 위험도
+                    {isKo
+                      ? '선택된 청약 피보험자 프로필 & 예상 위험도'
+                      : 'Selected Insured Profile & Live Risk Estimate'}
                   </span>
                   {isModifiedFromOriginal && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold">
-                      조건 수정됨
+                      {isKo ? '조건 수정됨' : 'Modified'}
                     </span>
                   )}
                 </div>
@@ -320,7 +390,8 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                       onClick={onResetToSelectedApplicant}
                       className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-indigo-600 font-semibold"
                     >
-                      <RotateCcw className="w-3.5 h-3.5" /> 원래대로 복원
+                      <RotateCcw className="w-3.5 h-3.5" />{' '}
+                      {isKo ? '원래대로 복원' : 'Reset'}
                     </button>
                   )}
                   {selectedApplicantId !== 'CUSTOM' && (
@@ -329,7 +400,13 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                       onClick={() => setShowProfileEditor((v) => !v)}
                       className="text-xs text-indigo-600 hover:text-indigo-800 font-bold underline"
                     >
-                      {showProfileEditor ? '인적사항 입력창 접기' : '인적사항 세부 조정'}
+                      {showProfileEditor
+                        ? isKo
+                          ? '인적사항 입력창 접기'
+                          : 'Hide Profile Editor'
+                        : isKo
+                        ? '인적사항 세부 조정'
+                        : 'Edit Demographics'}
                     </button>
                   )}
                 </div>
@@ -339,16 +416,18 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
               <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2 shadow-2xs">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-slate-600 font-semibold">
-                    실시간 예상 종합 위험점수 (AI Risk Assessment)
+                    {isKo
+                      ? '실시간 예상 종합 위험점수 (AI Risk Assessment)'
+                      : 'Live Composite Risk Score (AI Risk Assessment)'}
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-extrabold text-slate-900">
-                      {liveEst.score} / 100점
+                      {isKo ? `${liveEst.score} / 100점` : `${liveEst.score} / 100 pts`}
                     </span>
                     <span
                       className={`text-[11px] px-2.5 py-0.5 rounded-full border font-bold ${gradeMeta.badgeClass}`}
                     >
-                      {gradeMeta.label}
+                      {isKo ? gradeMeta.label : gradeMeta.enLabel}
                     </span>
                   </div>
                 </div>
@@ -360,13 +439,26 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                 </div>
                 <div className="flex items-center justify-between text-xs text-slate-500 pt-0.5">
                   <span className="font-medium text-slate-700">
-                    {draftInput.applicantName} ({draftInput.age}세 ·{' '}
-                    {draftInput.gender === 'M' ? '남성' : '여성'} · {draftInput.occupationName}{' '}
-                    [상해 {draftInput.occupationGrade}급] ·{' '}
-                    {draftInput.isSmoker ? '흡연' : '비흡연'} · BMI {draftInput.bmi})
+                    {isKo
+                      ? `${displayedDraftName} (${draftInput.age}세 · ${
+                          draftInput.gender === 'M' ? '남성' : '여성'
+                        } · ${displayedDraftOccupation} [상해 ${
+                          draftInput.occupationGrade
+                        }급] · ${draftInput.isSmoker ? '흡연' : '비흡연'} · BMI ${
+                          draftInput.bmi
+                        })`
+                      : `${displayedDraftName} (Age ${draftInput.age} · ${
+                          draftInput.gender === 'M' ? 'Male' : 'Female'
+                        } · ${displayedDraftOccupation} [Grade ${
+                          draftInput.occupationGrade
+                        }] · ${draftInput.isSmoker ? 'Smoker' : 'Non-Smoker'} · BMI ${
+                          draftInput.bmi
+                        })`}
                   </span>
                   <span className="font-semibold text-indigo-700">
-                    예상 할증지수 {liveEst.loadingRatio.toFixed(2)}배
+                    {isKo
+                      ? `예상 할증지수 ${liveEst.loadingRatio.toFixed(2)}배`
+                      : `Est. Loading ${liveEst.loadingRatio.toFixed(2)}x`}
                   </span>
                 </div>
               </div>
@@ -376,7 +468,7 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                 <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200/80">
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1">
-                      고객 성명
+                      {isKo ? '고객 성명' : 'Customer Name'}
                     </label>
                     <input
                       type="text"
@@ -394,7 +486,7 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1">
-                        보험나이(세)
+                        {isKo ? '보험나이(세)' : 'Insurance Age'}
                       </label>
                       <input
                         type="number"
@@ -412,7 +504,7 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1">
-                        성별
+                        {isKo ? '성별' : 'Gender'}
                       </label>
                       <select
                         value={draftInput.gender}
@@ -421,15 +513,15 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                         }
                         className="w-full px-2.5 py-2 text-xs bg-white border border-slate-200 rounded-xl"
                       >
-                        <option value="M">남성 (M)</option>
-                        <option value="F">여성 (F)</option>
+                        <option value="M">{isKo ? '남성 (M)' : 'Male (M)'}</option>
+                        <option value="F">{isKo ? '여성 (F)' : 'Female (F)'}</option>
                       </select>
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1">
-                      직업명
+                      {isKo ? '직업명' : 'Occupation'}
                     </label>
                     <input
                       type="text"
@@ -446,7 +538,7 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
 
                   <div>
                     <label className="block text-xs font-bold text-slate-600 mb-1">
-                      상해 직업급수
+                      {isKo ? '상해 직업급수' : 'Occupation Injury Grade'}
                     </label>
                     <select
                       value={draftInput.occupationGrade}
@@ -458,14 +550,28 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                       }
                       className="w-full px-2.5 py-2 text-xs bg-white border border-slate-200 rounded-xl"
                     >
-                      <option value={1}>1급 (사무직·전문직 비위험)</option>
-                      <option value={2}>2급 (외근·현장관리 중위험)</option>
-                      <option value={3}>3급 (건설·운수·고소작업 고위험)</option>
+                      <option value={1}>
+                        {isKo
+                          ? '1급 (사무직·전문직 비위험)'
+                          : 'Grade 1 (Office / Professional — Low Risk)'}
+                      </option>
+                      <option value={2}>
+                        {isKo
+                          ? '2급 (외근·현장관리 중위험)'
+                          : 'Grade 2 (Field / Supervision — Moderate Risk)'}
+                      </option>
+                      <option value={3}>
+                        {isKo
+                          ? '3급 (건설·운수·고소작업 고위험)'
+                          : 'Grade 3 (Construction / Driving / High-Altitude — High Risk)'}
+                      </option>
                     </select>
                   </div>
 
                   <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-slate-200">
-                    <span className="text-xs font-bold text-slate-600">현재 흡연 여부</span>
+                    <span className="text-xs font-bold text-slate-600">
+                      {isKo ? '현재 흡연 여부' : 'Current Smoker'}
+                    </span>
                     <input
                       type="checkbox"
                       checked={draftInput.isSmoker}
@@ -506,16 +612,22 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
               <div className="flex items-center gap-2">
                 <HeartPulse className="w-4 h-4 text-rose-500" />
                 <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  1-B. 계약 전 알릴 의무 (병력·직업·운전 위험요소 고지)
+                  {isKo
+                    ? '1-B. 계약 전 알릴 의무 (병력·직업·운전 위험요소 고지)'
+                    : '1-B. Pre-Contract Disclosure (Medical, Occupational & Driving Risks)'}
                 </h3>
               </div>
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-bold">
-                고지 위험요소 {draftInput.riskFactorCodes.length}건 선택됨
+                {isKo
+                  ? `고지 위험요소 ${draftInput.riskFactorCodes.length}건 선택됨`
+                  : `${draftInput.riskFactorCodes.length} Risk Factor(s) Selected`}
               </span>
             </div>
 
             <p className="text-xs text-slate-500">
-              고객이 보유한 기왕증(KCD 질병코드)이나 직업·운전 위험요소를 체크하세요. 선택된 위험요소는 다음 단계에서 상품별 담보 민감도와 자동 대조됩니다.
+              {isKo
+                ? '고객이 보유한 기왕증(KCD 질병코드)이나 직업·운전 위험요소를 체크하세요. 선택된 위험요소는 다음 단계에서 상품별 담보 민감도와 자동 대조됩니다.'
+                : 'Check any pre-existing medical conditions (KCD codes) or occupational/driving hazards held by the customer. Selected factors are automatically cross-checked against coverage risk sensitivities in Step 2.'}
             </p>
 
             <div className="space-y-2">
@@ -523,8 +635,15 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                 const checked = draftInput.riskFactorCodes.includes(rf.factorCode);
                 const catMeta = RISK_CATEGORY_META[rf.riskCategory] || {
                   label: rf.riskCategory,
+                  enLabel: rf.riskCategory,
                   colorClass: 'bg-slate-100 text-slate-700 border-slate-200',
                 };
+                const rfName = translateRiskFactorName(rf.factorCode, rf.factorName, lang);
+                const rfNote = translateRiskClinicalNote(
+                  rf.factorCode,
+                  rf.clinicalNote,
+                  lang
+                );
 
                 return (
                   <div
@@ -547,16 +666,16 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs font-extrabold text-slate-900">
-                              {rf.factorName}
+                              {rfName}
                             </span>
                             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
                               {rf.factorCode}
                             </span>
                           </div>
-                          {rf.clinicalNote && (
+                          {rfNote && (
                             <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                               <FileSpreadsheet className="w-3.5 h-3.5 inline mr-1 text-slate-400" />
-                              {rf.clinicalNote}
+                              {rfNote}
                             </p>
                           )}
                         </div>
@@ -566,7 +685,7 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                         <span
                           className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded border ${catMeta.colorClass}`}
                         >
-                          {catMeta.label.split(' ')[0]}
+                          {isKo ? catMeta.label.split(' ')[0] : catMeta.enLabel}
                         </span>
                         <div
                           className={`text-[11px] font-extrabold mt-1 ${
@@ -577,7 +696,8 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
                               : 'text-slate-500'
                           }`}
                         >
-                          +{rf.riskScoreContribution}점 ({rf.severityLevel})
+                          +{rf.riskScoreContribution}
+                          {isKo ? '점' : ' pts'} ({rf.severityLevel})
                         </div>
                       </div>
                     </div>
@@ -593,19 +713,26 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
       <div className="px-6 py-4 bg-slate-900 text-white border-t border-slate-800 flex flex-wrap items-center justify-between gap-4 shrink-0">
         <div className="flex items-center gap-3 text-xs">
           <span className="px-2.5 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 font-bold">
-            선택된 고객 요약
+            {isKo ? '선택된 고객 요약' : 'Selected Applicant'}
           </span>
           <span className="font-bold text-white text-sm">
-            {draftInput.applicantName} ({draftInput.age}세 ·{' '}
-            {draftInput.gender === 'M' ? '남' : '여'})
+            {isKo
+              ? `${displayedDraftName} (${draftInput.age}세 · ${
+                  draftInput.gender === 'M' ? '남' : '여'
+                })`
+              : `${displayedDraftName} (Age ${draftInput.age} · ${draftInput.gender})`}
           </span>
           <span className="text-slate-400">|</span>
           <span className="text-slate-300">
-            {draftInput.occupationName} (상해 {draftInput.occupationGrade}급)
+            {isKo
+              ? `${displayedDraftOccupation} (상해 ${draftInput.occupationGrade}급)`
+              : `${displayedDraftOccupation} (Grade ${draftInput.occupationGrade})`}
           </span>
           <span className="text-slate-400">|</span>
           <span className="text-amber-300 font-semibold">
-            고지 위험요소 {draftInput.riskFactorCodes.length}건 (예상 위험점수 {liveEst.score}점)
+            {isKo
+              ? `고지 위험요소 ${draftInput.riskFactorCodes.length}건 (예상 위험점수 ${liveEst.score}점)`
+              : `${draftInput.riskFactorCodes.length} Disclosed Risk(s) (Est. Score ${liveEst.score} pts)`}
           </span>
         </div>
 
@@ -614,7 +741,7 @@ export const CustomerSelectionPanel: React.FC<CustomerSelectionPanelProps> = ({
           onClick={onNextStep}
           className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs inline-flex items-center gap-2 shadow-lg shadow-indigo-950 transition"
         >
-          <span>다음: 보험상품 선택</span>
+          <span>{isKo ? '다음: 보험상품 선택' : 'Next: Select Insurance Product'}</span>
           <ArrowRight className="w-4 h-4" />
         </button>
       </div>

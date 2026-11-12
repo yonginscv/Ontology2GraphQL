@@ -19,22 +19,28 @@ import { CaseHistoryAndRuleModal } from './components/CaseHistoryAndRuleModal';
 import { OntologyViewerTab } from './components/OntologyViewerTab';
 import { formatKRW } from './formatters';
 import {
+  translateApplicantName,
+  translateProductName,
+  useLanguage,
+} from './i18n';
+import {
   AlertCircle,
   BookOpen,
   BriefcaseBusiness,
   Check,
   ChevronRight,
   Code2,
+  Globe,
   History,
   Network,
-  RefreshCw,
-  ShieldCheck,
   Sparkles,
-  UserCheck,
   Zap,
 } from 'lucide-react';
 
 export const App: React.FC = () => {
+  const { lang, setLang } = useLanguage();
+  const isKo = lang === 'ko';
+
   const [mainView, setMainView] = useState<'WORKBENCH' | 'ONTOLOGY_VIEWER'>('WORKBENCH');
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
 
@@ -109,7 +115,9 @@ export const App: React.FC = () => {
       setErrorMessage(
         err instanceof Error
           ? err.message
-          : '백엔드 GraphQL 서버(http://localhost:8080/graphql)에 연결할 수 없습니다.'
+          : isKo
+          ? '백엔드 GraphQL 서버(http://localhost:8080/graphql)에 연결할 수 없습니다.'
+          : 'Unable to connect to the backend GraphQL server (http://localhost:8080/graphql).'
       );
     } finally {
       setIsLoadingInit(false);
@@ -139,10 +147,10 @@ export const App: React.FC = () => {
     setSelectedApplicantId('CUSTOM');
     setDraftInput((prev) => ({
       ...prev,
-      applicantName: '정하늘 (신규 가망고객)',
+      applicantName: isKo ? '정하늘 (신규 가망고객)' : 'Ha-neul Jung (New Prospect)',
       age: 42,
       gender: 'M',
-      occupationName: '자영업 카페 운영',
+      occupationName: isKo ? '자영업 카페 운영' : 'Self-Employed Cafe Owner',
       occupationGrade: 1,
       isSmoker: false,
       bmi: 24.2,
@@ -184,7 +192,11 @@ export const App: React.FC = () => {
       setCases((prev) => [newCase, ...prev.filter((c) => c.caseId !== newCase.caseId)]);
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : '언더라이팅 심사 실행 중 오류가 발생했습니다.'
+        err instanceof Error
+          ? err.message
+          : isKo
+          ? '언더라이팅 심사 실행 중 오류가 발생했습니다.'
+          : 'An error occurred while running the underwriting simulation.'
       );
     } finally {
       setIsSimulating(false);
@@ -247,6 +259,15 @@ export const App: React.FC = () => {
   const selectedProduct =
     products.find((p) => p.productId === draftInput.productId) || products[0] || null;
 
+  const displayedDraftApplicantName = translateApplicantName(
+    selectedApplicantId,
+    draftInput.applicantName,
+    lang
+  );
+  const displayedSelectedProductName = selectedProduct
+    ? translateProductName(selectedProduct.productId, selectedProduct.productName, lang)
+    : '';
+
   return (
     <div className="h-screen w-screen flex flex-col bg-slate-100 text-slate-900 overflow-hidden">
       {/* Top Global Sales Portal Header */}
@@ -258,22 +279,28 @@ export const App: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-extrabold text-base tracking-tight text-white">
-                Smart FP 언더라이팅 워크벤치
+                {isKo
+                  ? 'Smart FP 언더라이팅 워크벤치'
+                  : 'Smart FP Underwriting Workbench'}
               </h1>
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
-                3-Step 위자드 청약·인수심사 시스템
+                {isKo
+                  ? '3-Step 위자드 청약·인수심사 시스템'
+                  : '3-Step Wizard Sales & Underwriting System'}
               </span>
               <span className="hidden md:inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-emerald-400 border border-slate-700">
                 GraphQL Schema (ins:InsuranceProductUnderwritingOntology)
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              STEP 1 고객·고지사항 선택 → STEP 2 보험상품·담보 선택 → STEP 3 언더라이팅 심사 및 대안설계
+              {isKo
+                ? 'STEP 1 고객·고지사항 선택 → STEP 2 보험상품·담보 선택 → STEP 3 언더라이팅 심사 및 대안설계'
+                : 'STEP 1 Customer & Disclosures → STEP 2 Product & Coverages → STEP 3 Underwriting Decision & Alternatives'}
             </p>
           </div>
         </div>
 
-        {/* Right Action Buttons */}
+        {/* Right Action Buttons + Ko/En Language Toggle */}
         <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
@@ -289,8 +316,12 @@ export const App: React.FC = () => {
             <Network className="w-3.5 h-3.5" />
             <span>
               {mainView === 'ONTOLOGY_VIEWER'
-                ? '← 언더라이팅 워크벤치로 돌아가기'
-                : '온톨로지 뷰어 (Ontology Graph)'}
+                ? isKo
+                  ? '← 언더라이팅 워크벤치로 돌아가기'
+                  : '← Back to Underwriting Workbench'
+                : isKo
+                ? '온톨로지 뷰어 (Ontology Graph)'
+                : 'Ontology Viewer (Ontology Graph)'}
             </span>
           </button>
 
@@ -300,7 +331,9 @@ export const App: React.FC = () => {
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
           >
             <History className="w-3.5 h-3.5 text-indigo-400" />
-            <span>심사 이력 ({cases.length})</span>
+            <span>
+              {isKo ? `심사 이력 (${cases.length})` : `Case History (${cases.length})`}
+            </span>
           </button>
 
           <button
@@ -309,7 +342,9 @@ export const App: React.FC = () => {
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition"
           >
             <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-            <span>인수심사 지침 ({rules.length})</span>
+            <span>
+              {isKo ? `인수심사 지침 (${rules.length})` : `UW Guidelines (${rules.length})`}
+            </span>
           </button>
 
           <button
@@ -319,9 +354,46 @@ export const App: React.FC = () => {
           >
             <Code2 className="w-3.5 h-3.5 text-indigo-400" />
             <span>
-              GraphQL & Lineage ({latestLog ? `${latestLog.lineageSteps.length} steps` : 'Ready'})
+              GraphQL & Lineage (
+              {latestLog
+                ? `${latestLog.lineageSteps.length} ${isKo ? 'steps' : 'steps'}`
+                : isKo
+                ? '대기'
+                : 'Ready'}
+              )
             </span>
           </button>
+
+          {/* Top Ko / En Language Toggle Button */}
+          <div
+            className="inline-flex items-center bg-slate-800 p-0.5 rounded-xl border border-slate-700 shadow-inner"
+            role="group"
+            aria-label="Language Toggle"
+          >
+            <Globe className="w-3.5 h-3.5 text-slate-400 ml-2 mr-1 shrink-0" />
+            <button
+              type="button"
+              onClick={() => setLang('ko')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition ${
+                lang === 'ko'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Ko
+            </button>
+            <button
+              type="button"
+              onClick={() => setLang('en')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-extrabold transition ${
+                lang === 'en'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              En
+            </button>
+          </div>
         </div>
       </header>
 
@@ -354,15 +426,18 @@ export const App: React.FC = () => {
             </span>
             <div>
               <div className="text-xs font-extrabold leading-tight">
-                1단계: 고객 및 고지사항 선택
+                {isKo
+                  ? '1단계: 고객 및 고지사항 선택'
+                  : 'Step 1: Customer & Disclosures'}
               </div>
               <div
                 className={`text-[11px] ${
                   wizardStep === 1 ? 'text-indigo-100' : 'text-slate-500'
                 }`}
               >
-                {draftInput.applicantName} ({draftInput.age}세 · 위험요소{' '}
-                {draftInput.riskFactorCodes.length}건)
+                {isKo
+                  ? `${displayedDraftApplicantName} (${draftInput.age}세 · 위험요소 ${draftInput.riskFactorCodes.length}건)`
+                  : `${displayedDraftApplicantName} (Age ${draftInput.age} · ${draftInput.riskFactorCodes.length} Risk Factors)`}
               </div>
             </div>
           </button>
@@ -394,7 +469,9 @@ export const App: React.FC = () => {
             </span>
             <div>
               <div className="text-xs font-extrabold leading-tight">
-                2단계: 보험상품 및 담보 선택
+                {isKo
+                  ? '2단계: 보험상품 및 담보 선택'
+                  : 'Step 2: Product & Coverages'}
               </div>
               <div
                 className={`text-[11px] truncate max-w-[190px] ${
@@ -402,10 +479,13 @@ export const App: React.FC = () => {
                 }`}
               >
                 {selectedProduct
-                  ? `${selectedProduct.productName} (${formatKRW(
-                      selectedProduct.baseMonthlyPremium
+                  ? `${displayedSelectedProductName} (${formatKRW(
+                      selectedProduct.baseMonthlyPremium,
+                      lang
                     )})`
-                  : '상품 선택'}
+                  : isKo
+                  ? '상품 선택'
+                  : 'Select Product'}
               </div>
             </div>
           </button>
@@ -433,14 +513,22 @@ export const App: React.FC = () => {
             </span>
             <div>
               <div className="text-xs font-extrabold leading-tight">
-                3단계: 언더라이팅 심사 판정
+                {isKo
+                  ? '3단계: 언더라이팅 심사 판정'
+                  : 'Step 3: Underwriting Decision'}
               </div>
               <div
                 className={`text-[11px] ${
                   wizardStep === 3 ? 'text-emerald-100' : 'text-slate-500'
                 }`}
               >
-                {activeCase ? `최근 판정: ${activeCase.decision.decisionOutcome}` : '심사 실행 대기'}
+                {activeCase
+                  ? isKo
+                    ? `최근 판정: ${activeCase.decision.decisionOutcome}`
+                    : `Latest: ${activeCase.decision.decisionOutcome}`
+                  : isKo
+                  ? '심사 실행 대기'
+                  : 'Ready to Evaluate'}
               </div>
             </div>
           </button>
@@ -449,35 +537,36 @@ export const App: React.FC = () => {
         {/* Quick Scenario Presets */}
         <div className="hidden xl:flex items-center gap-1.5">
           <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-200">
-            <Zap className="w-3 h-3" /> 빠른 시나리오 프리셋
+            <Zap className="w-3 h-3" />{' '}
+            {isKo ? '빠른 시나리오 프리셋' : 'Quick Scenarios'}
           </span>
           <button
             type="button"
             onClick={() => applyQuickScenario('APPL-1001', 'PROD-HLT-001')}
             className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 transition"
           >
-            ① 김민준(갑상선결절)
+            {isKo ? '① 김민준(갑상선결절)' : '① Min-jun Kim (Thyroid Nodule)'}
           </button>
           <button
             type="button"
             onClick={() => applyQuickScenario('APPL-1002', 'PROD-HLT-001')}
             className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 transition"
           >
-            ② 박서연(고혈압+당뇨)
+            {isKo ? '② 박서연(고혈압+당뇨)' : '② Seo-yeon Park (HTN + Diabetes)'}
           </button>
           <button
             type="button"
             onClick={() => applyQuickScenario('APPL-1003', 'PROD-DRV-003')}
             className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 transition"
           >
-            ③ 이태호(현장직3급)
+            {isKo ? '③ 이태호(현장직3급)' : '③ Tae-ho Lee (Field Grade 3)'}
           </button>
           <button
             type="button"
             onClick={() => applyQuickScenario('APPL-1004', 'PROD-HLT-001')}
             className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 transition"
           >
-            ④ 최영철(협심증·거절대안)
+            {isKo ? '④ 최영철(협심증·거절대안)' : '④ Young-chul Choi (Angina · Alt Plan)'}
           </button>
         </div>
       </div>
@@ -494,7 +583,7 @@ export const App: React.FC = () => {
             onClick={loadWorkbenchData}
             className="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-bold hover:bg-rose-700"
           >
-            재시도
+            {isKo ? '재시도' : 'Retry'}
           </button>
         </div>
       )}
@@ -510,7 +599,9 @@ export const App: React.FC = () => {
             <div className="h-full flex flex-col items-center justify-center gap-3 text-slate-500">
               <Sparkles className="w-7 h-7 animate-spin text-indigo-600" />
               <div className="text-sm font-bold text-slate-700">
-                GraphQL 게이트웨이에서 상품 카탈로그 · 고객 프로필 · 심사 규칙을 불러오는 중입니다...
+                {isKo
+                  ? 'GraphQL 게이트웨이에서 상품 카탈로그 · 고객 프로필 · 심사 규칙을 불러오는 중입니다...'
+                  : 'Loading Product Catalog, Applicant Profiles, and Underwriting Rules from the GraphQL Gateway...'}
               </div>
             </div>
           ) : wizardStep === 1 ? (
