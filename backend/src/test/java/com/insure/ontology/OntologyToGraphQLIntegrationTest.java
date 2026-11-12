@@ -5,16 +5,21 @@ import com.insure.ontology.generator.OntologyToGraphQLGenerator;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.graphql.tester.AutoConfigureGraphQlTester;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.graphql.test.tester.GraphQlTester;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.nio.charset.StandardCharsets;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureGraphQlTester
+@AutoConfigureMockMvc
 class OntologyToGraphQLIntegrationTest {
 
     @Autowired
@@ -22,6 +27,9 @@ class OntologyToGraphQLIntegrationTest {
 
     @Autowired
     private GraphQlTester graphQlTester;
+
+    @Autowired
+    private MockMvc mockMvc;
 
     @Test
     void shouldParseJsonLdOntologyAndGenerateGraphQLSchemaWithDirectives() {
@@ -97,13 +105,39 @@ class OntologyToGraphQLIntegrationTest {
     }
 
     @Test
-    void shouldServePinnedGraphiqlHtmlTemplate() throws Exception {
+    void shouldServeLocalGraphiqlHtmlTemplateAndVendorAssetsForOfflineUse() throws Exception {
         ClassPathResource resource = new ClassPathResource("graphiql/index.html");
         String html = resource.getContentAsString(StandardCharsets.UTF_8);
         assertThat(html)
-                .contains("https://unpkg.com/graphiql@3.0.6/graphiql.min.js")
-                .contains("https://unpkg.com/graphiql@3.0.6/graphiql.min.css")
-                .contains("https://unpkg.com/@graphiql/plugin-explorer@1.0.2/dist/index.umd.js")
-                .contains("https://unpkg.com/@graphiql/plugin-explorer@1.0.2/dist/style.css");
+                .doesNotContain("unpkg.com")
+                .doesNotContain("http://")
+                .doesNotContain("https://")
+                .contains("/graphiql/vendor/react.production.min.js")
+                .contains("/graphiql/vendor/react-dom.production.min.js")
+                .contains("/graphiql/vendor/graphiql.min.js")
+                .contains("/graphiql/vendor/graphiql.min.css")
+                .contains("/graphiql/vendor/plugin-explorer.umd.js")
+                .contains("/graphiql/vendor/plugin-explorer.css");
+
+        String[] localVendorAssets = {
+                "static/graphiql/vendor/react.production.min.js",
+                "static/graphiql/vendor/react-dom.production.min.js",
+                "static/graphiql/vendor/graphiql.min.js",
+                "static/graphiql/vendor/graphiql.min.css",
+                "static/graphiql/vendor/plugin-explorer.umd.js",
+                "static/graphiql/vendor/plugin-explorer.css"
+        };
+        for (String assetPath : localVendorAssets) {
+            ClassPathResource asset = new ClassPathResource(assetPath);
+            assertThat(asset.exists()).as("Expected offline asset to exist: " + assetPath).isTrue();
+            assertThat(asset.contentLength()).as("Expected offline asset to be non-empty: " + assetPath).isGreaterThan(0);
+
+            String webPath = assetPath.substring("static".length());
+            mockMvc.perform(get(webPath))
+                    .andExpect(status().isOk());
+        }
+
+        mockMvc.perform(get("/graphiql").param("path", "/graphql"))
+                .andExpect(status().isOk());
     }
 }
