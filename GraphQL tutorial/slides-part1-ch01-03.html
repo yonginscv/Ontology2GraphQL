@@ -1,0 +1,2524 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GraphQL 기술 세미나 Part 1 (Chapter 01 ~ 03) 발표 및 자습용 슬라이드</title>
+  <style>
+    :root {
+      --bg-dark: #0b1020;
+      --bg-slide: #111827;
+      --bg-card: #1e293b;
+      --bg-card-alt: #0f172a;
+      --bg-code: #090d16;
+      --text-main: #f8fafc;
+      --text-sub: #cbd5e1;
+      --text-muted: #94a3b8;
+      --accent-pink: #e10098;
+      --accent-pink-light: #ff4db8;
+      --accent-blue: #38bdf8;
+      --accent-indigo: #6366f1;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --border-color: #334155;
+      --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Navigation Bar */
+    .top-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 52px;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text-main);
+    }
+
+    .brand-logo {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, var(--accent-pink), var(--accent-indigo));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 13px;
+      color: #fff;
+    }
+
+    .chapter-pills {
+      display: flex;
+      gap: 8px;
+    }
+
+    .chapter-pill {
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .chapter-pill:hover {
+      color: var(--text-main);
+      border-color: var(--border-color);
+    }
+
+    .chapter-pill.active {
+      color: #fff;
+      background: rgba(225, 0, 152, 0.2);
+      border-color: var(--accent-pink);
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover {
+      background: #334155;
+      border-color: var(--accent-blue);
+    }
+
+    .slide-counter {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--text-sub);
+      min-width: 68px;
+      text-align: center;
+    }
+
+    /* Progress Bar */
+    .progress-track {
+      position: fixed;
+      top: 52px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.06);
+      z-index: 101;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-pink), var(--accent-blue));
+      width: 0%;
+      transition: width 0.25s ease;
+    }
+
+    /* Slide Viewport */
+    .deck-viewport {
+      position: absolute;
+      top: 55px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(30px);
+      transition: opacity 0.28s ease, transform 0.28s ease;
+      overflow-y: auto;
+      padding: 32px 48px 60px 48px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+
+    .slide-inner {
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Slide Header */
+    .slide-header {
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 14px;
+    }
+
+    .slide-badge-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .badge-ch1 { background: rgba(225, 0, 152, 0.2); color: #ff66c4; border: 1px solid rgba(225, 0, 152, 0.4); }
+    .badge-ch2 { background: rgba(56, 189, 248, 0.18); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .badge-ch3 { background: rgba(16, 185, 129, 0.18); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+    .badge-sub { background: rgba(99, 102, 241, 0.18); color: #a5b4fc; }
+
+    .slide-title {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.25;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+    }
+
+    .slide-subtitle {
+      font-size: 15px;
+      color: var(--text-sub);
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    /* Grid Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .col-5-7 {
+      display: grid;
+      grid-template-columns: 5fr 7fr;
+      gap: 20px;
+    }
+
+    .col-7-5 {
+      display: grid;
+      grid-template-columns: 7fr 5fr;
+      gap: 20px;
+    }
+
+    /* Cards & Boxes */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card-alt {
+      background: var(--bg-card-alt);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 18px 20px;
+    }
+
+    .card-pink { border-left: 4px solid var(--accent-pink); }
+    .card-blue { border-left: 4px solid var(--accent-blue); }
+    .card-green { border-left: 4px solid var(--accent-green); }
+    .card-amber { border-left: 4px solid var(--accent-amber); }
+    .card-indigo { border-left: 4px solid var(--accent-indigo); }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card p, .card li {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text-sub);
+    }
+
+    .card ul, .card ol {
+      padding-left: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .highlight-box {
+      background: linear-gradient(90deg, rgba(225, 0, 152, 0.14), rgba(99, 102, 241, 0.12));
+      border: 1px solid rgba(225, 0, 152, 0.4);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #f1f5f9;
+    }
+
+    /* Tables */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      background: var(--bg-card-alt);
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+
+    table.data-table th {
+      background: #1e293b;
+      color: #fff;
+      text-align: left;
+      padding: 11px 14px;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    table.data-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+      color: var(--text-sub);
+      line-height: 1.55;
+      vertical-align: top;
+    }
+
+    table.data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* Code Blocks */
+    .code-panel {
+      background: var(--bg-code);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .code-header {
+      background: #161f30;
+      padding: 7px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--text-sub);
+    }
+
+    .code-lang {
+      font-weight: 700;
+      color: var(--accent-blue);
+    }
+
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--text-main);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .copy-btn:hover {
+      background: var(--accent-pink);
+      border-color: var(--accent-pink);
+    }
+
+    pre.code-body {
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #e2e8f0;
+      overflow-x: auto;
+      white-space: pre;
+      margin: 0;
+    }
+
+    code.inline {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      background: rgba(56, 189, 248, 0.12);
+      color: #7dd3fc;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Syntax colors inside pre */
+    .kw { color: #ff79c6; font-weight: 600; }
+    .ty { color: #8be9fd; }
+    .fn { color: #50fa7b; }
+    .str { color: #f1fa8c; }
+    .cm { color: #6272a4; font-style: italic; }
+    .an { color: #ffb86c; font-weight: 600; }
+    .num { color: #bd93f9; }
+
+    /* Diagram Container */
+    .diagram-box {
+      background: #0d1324;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .diagram-caption {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    /* TOC Drawer */
+    .toc-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .toc-modal.open {
+      display: flex;
+    }
+
+    .toc-content {
+      background: var(--bg-slide);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      max-width: 960px;
+      width: 100%;
+      max-height: 82vh;
+      overflow-y: auto;
+      padding: 24px 28px;
+    }
+
+    .toc-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .toc-item {
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.15s;
+    }
+
+    .toc-item:hover {
+      border-color: var(--accent-pink);
+      background: #26334d;
+    }
+
+    .toc-num {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--accent-pink-light);
+      min-width: 28px;
+    }
+
+    /* Cover Hero */
+    .hero-cover {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 20px 0;
+      gap: 28px;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(225, 0, 152, 0.16);
+      border: 1px solid var(--accent-pink);
+      color: #ff80d5;
+      font-size: 13px;
+      font-weight: 700;
+      width: fit-content;
+    }
+
+    .hero-title {
+      font-size: 46px;
+      font-weight: 900;
+      line-height: 1.18;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #ffffff 30%, #ff66c4 75%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-desc {
+      font-size: 18px;
+      color: var(--text-sub);
+      max-width: 920px;
+      line-height: 1.65;
+    }
+
+    /* Print Mode */
+    @media print {
+      html, body {
+        overflow: visible;
+        height: auto;
+        background: #0b1020;
+      }
+      .top-bar, .progress-track, .toc-modal {
+        display: none !important;
+      }
+      .deck-viewport {
+        position: static;
+        overflow: visible;
+      }
+      .slide {
+        position: static;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        transform: none !important;
+        page-break-after: always;
+        min-height: 100vh;
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .grid-2, .grid-3, .grid-4, .col-5-7, .col-7-5 {
+        grid-template-columns: 1fr;
+      }
+      .slide {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <header class="top-bar">
+    <div class="brand">
+      <span class="brand-logo">GQL</span>
+      <span>GraphQL 기술 세미나 — Part 1 (Ch 01 ~ Ch 03)</span>
+    </div>
+
+    <div class="chapter-pills">
+      <button class="chapter-pill active" onclick="goToSlide(0)" id="pill-intro">Cover</button>
+      <button class="chapter-pill" onclick="goToSlide(1)" id="pill-ch1">Ch 01. GraphQL 소개</button>
+      <button class="chapter-pill" onclick="goToSlide(7)" id="pill-ch2">Ch 02. 특징과 장점</button>
+      <button class="chapter-pill" onclick="goToSlide(13)" id="pill-ch3">Ch 03. Schema 완벽 가이드</button>
+    </div>
+
+    <div class="controls">
+      <button class="btn" onclick="toggleToc()" title="전체 목차 열기 (단축키: M)">☰ 목차 (M)</button>
+      <button class="btn" onclick="prevSlide()" title="이전 슬라이드 (←)">◀ 이전</button>
+      <span class="slide-counter" id="slideCounter">1 / 22</span>
+      <button class="btn" onclick="nextSlide()" title="다음 슬라이드 (→ 또는 Space)">다음 ▶</button>
+      <button class="btn" onclick="toggleFullscreen()" title="전체화면 (F)">⛶</button>
+    </div>
+  </header>
+
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <!-- Slide Deck Viewport -->
+  <main class="deck-viewport" id="deckViewport">
+
+    <!-- ===================================================================
+         SLIDE 01: COVER & LEARNING ROADMAP
+         =================================================================== -->
+    <section class="slide active" data-chapter="intro" data-title=" 표지 및 Part 1 학습 로드맵">
+      <div class="slide-inner">
+        <div class="hero-cover">
+          <div class="hero-tag">GRAPHQL TECHNICAL SEMINAR · PART 1 (CHAPTER 01 – 03)</div>
+          <h1 class="hero-title">GraphQL 핵심 개념부터<br/>Schema 설계 &amp; Spring 실전까지</h1>
+          <p class="hero-desc">
+            발표 자료만 읽어도 완벽히 독학할 수 있도록 구성된 <strong>Self-Contained 기술 세미나 슬라이드</strong>입니다.<br/>
+            모든 클라이언트 호출 예제는 <code class="inline">curl</code>, 서버 구현은 <strong>Java 17 + Spring Boot 3 + Spring for GraphQL</strong>을 기준으로 설명합니다.
+          </p>
+
+          <div class="grid-3">
+            <div class="card card-pink">
+              <div class="slide-badge-row"><span class="badge badge-ch1">Chapter 01</span></div>
+              <div class="card-title">GraphQL의 소개</div>
+              <ul>
+                <li>왜 이름이 <strong>GraphQL</strong>인가? 도메인 그래프($G=(V,E)$)와의 관계 및 Graph DB 오해 해소</li>
+                <li>공식 표준 명세(<code class="inline">spec.graphql.org</code> &amp; GraphQL over HTTP)와 거버넌스</li>
+                <li><strong>Netflix</strong>(Federated GraphQL &amp; DGS), <strong>GitHub</strong>, <strong>Meta</strong>, <strong>Shopify</strong> 도입 사례</li>
+              </ul>
+            </div>
+
+            <div class="card card-blue">
+              <div class="slide-badge-row"><span class="badge badge-ch2">Chapter 02</span></div>
+              <div class="card-title">GraphQL 특징과 핵심 장점</div>
+              <ul>
+                <li><strong>Single Endpoint (<code class="inline">POST /graphql</code>)</strong> vs REST 다중 URI</li>
+                <li><strong>Over-fetching</strong>(불필요한 필드) &amp; <strong>Under-fetching</strong>(Waterfall 왕복) 완벽 해결</li>
+                <li>강력한 정적 타입 계약, <strong>Introspection</strong>, 부분 성공(<code class="inline">data</code> + <code class="inline">errors</code>)과 <code class="inline">extensions</code></li>
+              </ul>
+            </div>
+
+            <div class="card card-green">
+              <div class="slide-badge-row"><span class="badge badge-ch3">Chapter 03</span></div>
+              <div class="card-title">GraphQL Schema 완벽 가이드</div>
+              <ul>
+                <li>Scalar, Nullability(<code class="inline">!</code>), 리스트(<code class="inline">[T!]!</code>) 4가지 조합 규칙</li>
+                <li><code class="inline">type</code>(출력) vs <code class="inline">input</code>(입력) 분리 이유 &amp; <code class="inline">@directive</code> 완벽 정리</li>
+                <li><code class="inline">Query</code>(병렬) vs <code class="inline">Mutation</code>(순차 보장) 및 Variables · Aliases · Fragments 실습</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="highlight-box">
+            💡 <strong>조작 안내</strong>: 키보드 좌우 방향키(<code class="inline">←</code> / <code class="inline">→</code>), <code class="inline">Space</code>로 슬라이드를 이동하고, <code class="inline">M</code> 키를 눌러 전체 22장 슬라이드 목차로 즉시 점프할 수 있습니다. 각 코드 블록 우측 상단의 <strong>Copy</strong> 버튼으로 <code class="inline">curl</code> 명령어를 바로 복사해 실행해 보세요.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 02: CH 01 - WHY IS IT CALLED GRAPHQL?
+         =================================================================== -->
+    <section class="slide" data-chapter="ch1" data-title="Ch 01. 이름이 왜 GraphQL인가? Graph와의 관계">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch1">Chapter 01 · GraphQL의 소개</span>
+            <span class="badge badge-sub">1.1 Naming &amp; Mental Model</span>
+          </div>
+          <h2 class="slide-title">왜 이름이 GraphQL인가? 'Graph'와 무슨 관계인가?</h2>
+          <p class="slide-subtitle">GraphQL = <strong>Graph Query Language</strong>. 데이터베이스 종류가 아니라 <strong>비즈니스 도메인 데이터를 바라보는 멘탈 모델</strong>이 그래프이기 때문입니다.</p>
+        </div>
+
+        <div class="col-5-7">
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="card card-pink">
+              <div class="card-title">❓ 가장 흔한 오해와 진실</div>
+              <p><strong>Q. "GraphQL을 쓰려면 Neo4j나 Amazon Neptune 같은 Graph DB가 필요한가요?"</strong></p>
+              <p style="color:#fff; font-weight:600;">👉 전혀 아닙니다! (No Graph DB Required)</p>
+              <ul>
+                <li>GraphQL은 특정 DB에 종속되지 않는 <strong>API 계층의 쿼리 언어이자 실행 런타임(Execution Runtime)</strong>입니다.</li>
+                <li>백엔드가 PostgreSQL, Oracle, MySQL 같은 RDBMS이든, MongoDB/Redis 같은 NoSQL이든, 심지어 다른 REST/gRPC 마이크로서비스이든 상관없이 그 위에서 동작합니다.</li>
+              </ul>
+            </div>
+
+            <div class="card card-indigo">
+              <div class="card-title">🧠 비즈니스 도메인은 본질적으로 그래프 $G = (V, E)$ 다</div>
+              <ul>
+                <li><strong>정점 (Vertex / Node)</strong>: 비즈니스 엔티티 (<code class="inline">UnderwritingCase</code>, <code class="inline">InsuranceProduct</code>, <code class="inline">Coverage</code>, <code class="inline">ApplicantProfile</code>)</li>
+                <li><strong>간선 (Edge / Relationship)</strong>: 엔티티 간의 연관 관계 (<code class="inline">targetProduct</code>, <code class="inline">hasCoverage</code>, <code class="inline">targetApplicant</code>)</li>
+                <li>인간의 머릿속과 객체지향 메모리 상에서 도메인 데이터는 2차원 표(Table)가 아니라 <strong>서로 연결된 객체 그래프(Application Data Graph)</strong>입니다.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="diagram-box">
+            <svg viewBox="0 0 680 360" width="100%" height="330" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <marker id="arrowPink" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#e10098" />
+                </marker>
+                <marker id="arrowBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8" />
+                </marker>
+                <marker id="arrowGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981" />
+                </marker>
+              </defs>
+
+              <!-- Background Group Box -->
+              <rect x="10" y="10" width="660" height="340" rx="12" fill="#111827" stroke="#334155" stroke-dasharray="5,5" />
+              <text x="26" y="36" fill="#94a3b8" font-size="12" font-weight="700">APPLICATION DOMAIN GRAPH (NODES = OBJECT TYPES, EDGES = FIELDS)</text>
+
+              <!-- Center Node: UnderwritingCase -->
+              <rect x="30" y="135" width="175" height="90" rx="10" fill="#1e293b" stroke="#e10098" stroke-width="2.5" />
+              <text x="117" y="162" fill="#ff66c4" font-size="11" font-weight="700" text-anchor="middle">Node (Object Type)</text>
+              <text x="117" y="184" fill="#ffffff" font-size="14" font-weight="800" text-anchor="middle">UnderwritingCase</text>
+              <text x="117" y="206" fill="#cbd5e1" font-size="11" text-anchor="middle">caseId, uwStatus</text>
+
+              <!-- Product Node -->
+              <rect x="285" y="45" width="175" height="80" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2" />
+              <text x="372" y="72" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle">Node (Product Domain)</text>
+              <text x="372" y="92" fill="#ffffff" font-size="13.5" font-weight="800" text-anchor="middle">InsuranceProduct</text>
+              <text x="372" y="111" fill="#cbd5e1" font-size="11" text-anchor="middle">productId, productName</text>
+
+              <!-- Coverage Node -->
+              <rect x="515" y="45" width="140" height="80" rx="10" fill="#1e293b" stroke="#38bdf8" stroke-width="2" />
+              <text x="585" y="72" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle">Node (List)</text>
+              <text x="585" y="92" fill="#ffffff" font-size="13.5" font-weight="800" text-anchor="middle">Coverage</text>
+              <text x="585" y="111" fill="#cbd5e1" font-size="11" text-anchor="middle">coverageName</text>
+
+              <!-- Applicant Node -->
+              <rect x="285" y="150" width="175" height="80" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2" />
+              <text x="372" y="177" fill="#34d399" font-size="11" font-weight="700" text-anchor="middle">Node (Risk Domain)</text>
+              <text x="372" y="197" fill="#ffffff" font-size="13.5" font-weight="800" text-anchor="middle">ApplicantProfile</text>
+              <text x="372" y="216" fill="#cbd5e1" font-size="11" text-anchor="middle">applicantName, age</text>
+
+              <!-- RiskAssessment Node -->
+              <rect x="515" y="150" width="140" height="80" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="2" />
+              <text x="585" y="177" fill="#34d399" font-size="11" font-weight="700" text-anchor="middle">Node</text>
+              <text x="585" y="197" fill="#ffffff" font-size="13.5" font-weight="800" text-anchor="middle">RiskAssessment</text>
+              <text x="585" y="216" fill="#cbd5e1" font-size="11" text-anchor="middle">totalRiskScore</text>
+
+              <!-- Decision Node -->
+              <rect x="285" y="255" width="175" height="75" rx="10" fill="#1e293b" stroke="#f59e0b" stroke-width="2" />
+              <text x="372" y="280" fill="#fbbf24" font-size="11" font-weight="700" text-anchor="middle">Node (UW Domain)</text>
+              <text x="372" y="300" fill="#ffffff" font-size="13.5" font-weight="800" text-anchor="middle">UnderwritingDecision</text>
+              <text x="372" y="318" fill="#cbd5e1" font-size="11" text-anchor="middle">decisionOutcome, premium</text>
+
+              <!-- Edges -->
+              <path d="M 205 160 L 280 90" stroke="#38bdf8" stroke-width="2" fill="none" marker-end="url(#arrowBlue)" />
+              <text x="225" y="112" fill="#7dd3fc" font-size="11" font-weight="700">targetProduct</text>
+
+              <path d="M 460 85 L 510 85" stroke="#38bdf8" stroke-width="2" fill="none" marker-end="url(#arrowBlue)" />
+              <text x="485" y="75" fill="#7dd3fc" font-size="10.5" font-weight="700" text-anchor="middle">hasCoverage</text>
+
+              <path d="M 205 185 L 280 185" stroke="#10b981" stroke-width="2" fill="none" marker-end="url(#arrowGreen)" />
+              <text x="242" y="176" fill="#6ee7b7" font-size="11" font-weight="700" text-anchor="middle">targetApplicant</text>
+
+              <path d="M 460 190 L 510 190" stroke="#10b981" stroke-width="2" fill="none" marker-end="url(#arrowGreen)" />
+              <text x="485" y="180" fill="#6ee7b7" font-size="10.5" font-weight="700" text-anchor="middle">riskAssessment</text>
+
+              <path d="M 205 205 L 280 285" stroke="#e10098" stroke-width="2" fill="none" marker-end="url(#arrowPink)" />
+              <text x="225" y="262" fill="#ff80d5" font-size="11" font-weight="700">decision</text>
+            </svg>
+            <div class="diagram-caption">▲ 보험 언더라이팅 도메인 그래프: 정점(Type)과 간선(Field)을 따라 원하는 깊이만큼 탐색</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 03: CH 01 - SQL vs REST vs GRAPHQL & GRAPH TRAVERSAL
+         =================================================================== -->
+    <section class="slide" data-chapter="ch1" data-title="Ch 01. SQL vs REST vs GraphQL & 그래프 탐색">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch1">Chapter 01 · GraphQL의 소개</span>
+            <span class="badge badge-sub">1.2 Graph Traversal</span>
+          </div>
+          <h2 class="slide-title">SQL vs REST vs GraphQL: 데이터를 바라보는 관점과 그래프 탐색</h2>
+          <p class="slide-subtitle">SQL이 테이블(Table)을 다루고 REST가 개별 리소스 URL을 다룬다면, GraphQL은 <strong>루트 노드에서 간선(Edge)을 따라가며 부분 그래프(Subgraph Tree)를 추출</strong>합니다.</p>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:16%">구분</th>
+              <th style="width:28%">데이터를 바라보는 멘탈 모델</th>
+              <th>탐색 방식 및 특징</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>SQL</strong><br/><span style="font-size:11px;color:#94a3b8;">Structured Query Language</span></td>
+              <td><strong>2차원 테이블(Table)과 행/열(Row/Column)</strong></td>
+              <td>정규화된 테이블들을 <code class="inline">JOIN</code>하여 평탄화된(Flat) 2차원 결과 집합(ResultSet)을 반환함. 백엔드 DB 전용 질의어.</td>
+            </tr>
+            <tr>
+              <td><strong>REST</strong><br/><span style="font-size:11px;color:#94a3b8;">Representational State Transfer</span></td>
+              <td><strong>개별 리소스 URI (Resource Endpoint)</strong></td>
+              <td>그래프의 각 노드를 독립된 URL(<code class="inline">/cases/1</code>, <code class="inline">/products/5</code>)로 쪼개어 노출함. 간선(Edge)을 따라가려면 클라이언트가 여러 번 HTTP 호출을 반복해야 함.</td>
+            </tr>
+            <tr>
+              <td><strong style="color:#ff66c4;">GraphQL</strong><br/><span style="font-size:11px;color:#94a3b8;">Graph Query Language</span></td>
+              <td><strong style="color:#fff;">정점(Object Type)과 간선(Field)의 그래프</strong></td>
+              <td>도메인 전체를 하나의 연결된 스키마 그래프로 정의하고, 클라이언트가 루트 노드(<code class="inline">Query</code>)에서 원하는 간선(Field)을 따라가며 <strong>계층적 트리(Subgraph)를 단 1회 요청으로 추출</strong>함.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="grid-2">
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">GraphQL Query (그래프 탐색 명세서)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body"><span class="kw">query</span> <span class="fn">GetUnderwritingSubgraph</span> {
+  <span class="cm"># 1. Root(Query)에서 특정 심사건 노드로 진입</span>
+  <span class="fn">underwritingCase</span>(caseId: <span class="str">"UW-CASE-2026-002"</span>) {
+    caseId          <span class="cm"># 2. 노드의 Leaf(Scalar) 속성 선택</span>
+    uwStatus
+    targetProduct { <span class="cm"># 3. targetProduct 간선(Edge)을 따라 상품 노드로 이동</span>
+      productName
+      hasCoverage { <span class="cm"># 4. hasCoverage 간선을 따라 담보 노드 리스트로 이동</span>
+        coverageName
+      }
+    }
+    targetApplicant { <span class="cm"># 5. targetApplicant 간선을 따라 피보험자 노드로 이동</span>
+      applicantName
+      age
+    }
+  }
+}</pre>
+          </div>
+
+          <div class="card card-blue" style="justify-content:center;">
+            <div class="card-title">🔍 그래프 탐색(Traversal) 4단계 원리</div>
+            <ol>
+              <li><strong>진입점(Root Node) 출발</strong>: 모든 탐색은 <code class="inline">Query</code> 또는 <code class="inline">Mutation</code> 루트 정점에서 시작합니다.</li>
+              <li><strong>간선(Edge) 이동</strong>: 중괄호 <code class="inline">{ ... }</code>를 여는 것은 그래프의 간선(연관 필드)을 타고 다음 객체 정점으로 이동한다는 뜻입니다.</li>
+              <li><strong>단말(Leaf Scalar) 수확</strong>: 더 이상 하위 필드가 없는 스칼라(<code class="inline">String</code>, <code class="inline">Int</code>, <code class="inline">ID</code>)에서 탐색이 종료됩니다.</li>
+              <li><strong>예측 가능한 결과</strong>: 탐색한 경로 그대로 1:1 매칭되는 JSON 트리가 반환됩니다.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 04: CH 01 - SPECIFICATION & GOVERNANCE
+         =================================================================== -->
+    <section class="slide" data-chapter="ch1" data-title="Ch 01. GraphQL 표준(Specification)은 어디에 정의되어 있는가?">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch1">Chapter 01 · GraphQL의 소개</span>
+            <span class="badge badge-sub">1.3 Official Specification</span>
+          </div>
+          <h2 class="slide-title">GraphQL 표준(Specification)은 어디에 정의되어 있는가?</h2>
+          <p class="slide-subtitle">GraphQL은 특정 기업의 독점 라이브러리가 아니라, <strong>Linux Foundation 산하 GraphQL Foundation</strong>이 관리하는 엄격한 오픈 표준 명세입니다.</p>
+        </div>
+
+        <!-- Timeline SVG -->
+        <div class="diagram-box" style="padding:12px 18px;">
+          <svg viewBox="0 0 1100 105" width="100%" height="95" xmlns="http://www.w3.org/2000/svg">
+            <line x1="60" y1="45" x2="1040" y2="45" stroke="#475569" stroke-width="3" />
+            <circle cx="130" cy="45" r="10" fill="#e10098" />
+            <text x="130" y="24" fill="#ff66c4" font-size="13" font-weight="800" text-anchor="middle">2012년</text>
+            <text x="130" y="72" fill="#f8fafc" font-size="12" font-weight="700" text-anchor="middle">Meta(Facebook) 내부 개발</text>
+            <text x="130" y="90" fill="#94a3b8" font-size="11" text-anchor="middle">모바일 뉴스피드 네트워크 병목 해결</text>
+
+            <circle cx="410" cy="45" r="10" fill="#38bdf8" />
+            <text x="410" y="24" fill="#38bdf8" font-size="13" font-weight="800" text-anchor="middle">2015년</text>
+            <text x="410" y="72" fill="#f8fafc" font-size="12" font-weight="700" text-anchor="middle">오픈소스 공개 &amp; Spec 초안 발표</text>
+            <text x="410" y="90" fill="#94a3b8" font-size="11" text-anchor="middle">React Conf에서 레퍼런스 구현체 공개</text>
+
+            <circle cx="690" cy="45" r="10" fill="#10b981" />
+            <text x="690" y="24" fill="#34d399" font-size="13" font-weight="800" text-anchor="middle">2018년</text>
+            <text x="690" y="72" fill="#f8fafc" font-size="12" font-weight="700" text-anchor="middle">GraphQL Foundation 출범</text>
+            <text x="690" y="90" fill="#94a3b8" font-size="11" text-anchor="middle">Linux Foundation 산하 중립 거버넌스 이관</text>
+
+            <circle cx="960" cy="45" r="10" fill="#f59e0b" />
+            <text x="960" y="24" fill="#fbbf24" font-size="13" font-weight="800" text-anchor="middle">2021년 ~ 현재</text>
+            <text x="960" y="72" fill="#f8fafc" font-size="12" font-weight="700" text-anchor="middle">Spec 고도화 &amp; HTTP 표준화</text>
+            <text x="960" y="90" fill="#94a3b8" font-size="11" text-anchor="middle">RFC Stage 0~3 워킹그룹 프로세스 운영</text>
+          </svg>
+        </div>
+
+        <div class="grid-2">
+          <div class="card card-pink">
+            <div class="card-title">📜 표준 ①: GraphQL Specification (언어 및 실행 엔진 표준)</div>
+            <p><strong>공식 URL</strong>: <code class="inline">https://spec.graphql.org</code> (<code class="inline">github.com/graphql/graphql-spec</code>)</p>
+            <ul>
+              <li><strong>Query Language 문법</strong>: <code class="inline">query</code>, <code class="inline">mutation</code>, <code class="inline">subscription</code>, <code class="inline">fragment</code>, 변수(<code class="inline">$var</code>), 디렉티브 문법 규정</li>
+              <li><strong>Type System &amp; SDL</strong>: <code class="inline">scalar</code>, <code class="inline">type</code>, <code class="inline">input</code>, <code class="inline">interface</code>, <code class="inline">union</code>, <code class="inline">enum</code>, <code class="inline">directive</code> 정의 규칙</li>
+              <li><strong>Introspection 규격</strong>: <code class="inline">__schema</code>, <code class="inline">__type</code> 등 자기 기술(Self-describing) 메타 필드 표준</li>
+              <li><strong>Validation &amp; Execution</strong>: 쿼리 실행 전 정적 검증 알고리즘, Query 병렬 / Mutation 직렬 실행 규칙, Null Bubbling, 응답 최상위 키(<code class="inline">data</code>, <code class="inline">errors</code>, <code class="inline">extensions</code>) 강제</li>
+            </ul>
+          </div>
+
+          <div class="card card-blue">
+            <div class="card-title">🌐 표준 ②: GraphQL over HTTP Spec &amp; 언어별 구현체</div>
+            <p><strong>공식 URL</strong>: <code class="inline">https://graphql.github.io/graphql-over-http/</code></p>
+            <ul>
+              <li>HTTP POST 요청 본문 JSON 규격: <code class="inline">{"query": "...", "operationName": "...", "variables": {...}}</code></li>
+              <li>표준 미디어 타입(<code class="inline">application/json</code>, <code class="inline">application/graphql-response+json</code>) 정의</li>
+              <li><strong>표준 덕분에 가능한 다국어 구현체 생태계</strong>:
+                <ul>
+                  <li><strong>Java / JVM</strong>: <code class="inline">graphql-java</code> (엔진) → <strong>Spring for GraphQL</strong>, <strong>Netflix DGS</strong></li>
+                  <li><strong>JS / TS</strong>: <code class="inline">graphql-js</code>, Apollo Server, GraphQL Yoga</li>
+                  <li><strong>Python / Go / Rust</strong>: Strawberry, gqlgen, async-graphql</li>
+                </ul>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 05: CH 01 - NETFLIX CASE STUDY
+         =================================================================== -->
+    <section class="slide" data-chapter="ch1" data-title="Ch 01. Netflix의 GraphQL 아키텍처와 Spring 생태계 기여">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch1">Chapter 01 · GraphQL의 소개</span>
+            <span class="badge badge-sub">1.4 Netflix Case Study</span>
+          </div>
+          <h2 class="slide-title">Netflix는 왜, 어떻게 GraphQL을 전사 표준으로 채택했는가?</h2>
+          <p class="slide-subtitle">수백 개의 Spring Boot 마이크로서비스를 <strong>Federated GraphQL (Unified Supergraph)</strong>로 통합하고, 오픈소스 <strong>DGS &amp; Spring for GraphQL</strong> 생태계를 이끌고 있습니다.</p>
+        </div>
+
+        <div class="col-5-7">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div class="card card-pink">
+              <div class="card-title">🎬 1. 도입 배경: Falcor에서 Federated GraphQL로</div>
+              <ul>
+                <li>Netflix는 초기에 자체 JSON Graph 기술인 <strong>Falcor</strong>를 사용했으나, 내부 마이크로서비스가 수백~수천 개로 팽창하고 <strong>Netflix Studio Engineering</strong>(영화 제작·예산·VFX·계약 등 복잡한 엔터프라이즈 도메인)이 커지면서 한계에 봉착했습니다.</li>
+                <li>도메인 간 데이터를 유연하게 조합하고 글로벌 표준 도구를 활용하기 위해 <strong>GraphQL Federation(연합 그래프)</strong>으로 전면 전환했습니다.</li>
+              </ul>
+            </div>
+
+            <div class="card card-green">
+              <div class="card-title">🍃 2. Netflix DGS와 Spring for GraphQL의 공식 통합 (2024~)</div>
+              <ul>
+                <li>Netflix는 Spring Boot 기반 GraphQL 프레임워크인 <strong>Netflix DGS(Domain Graph Service)</strong>를 오픈소스로 공개해 발전시켰습니다.</li>
+                <li>이후 Spring 공식 팀이 <strong>Spring for GraphQL</strong>을 출시했고, <strong>2024년 Netflix DGS 팀과 Spring 팀이 두 프레임워크의 엔진 통합을 발표</strong>하여 현재 DGS는 Spring for GraphQL 위에서 동작합니다.</li>
+                <li>즉, 본 세미나의 <strong>Spring for GraphQL</strong>은 Netflix의 대규모 운영 노하우가 집약된 표준 기술입니다.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="diagram-box">
+            <svg viewBox="0 0 680 350" width="100%" height="325" xmlns="http://www.w3.org/2000/svg">
+              <!-- Clients -->
+              <rect x="25" y="15" width="180" height="44" rx="8" fill="#1e293b" stroke="#64748b" />
+              <text x="115" y="42" fill="#f8fafc" font-size="12.5" font-weight="700" text-anchor="middle">📺 Smart TV / Console App</text>
+
+              <rect x="250" y="15" width="180" height="44" rx="8" fill="#1e293b" stroke="#64748b" />
+              <text x="340" y="42" fill="#f8fafc" font-size="12.5" font-weight="700" text-anchor="middle">📱 iOS / Android Mobile</text>
+
+              <rect x="475" y="15" width="180" height="44" rx="8" fill="#1e293b" stroke="#64748b" />
+              <text x="565" y="42" fill="#f8fafc" font-size="12.5" font-weight="700" text-anchor="middle">🎬 Netflix Studio Web UI</text>
+
+              <!-- Gateway -->
+              <rect x="60" y="105" width="560" height="65" rx="10" fill="#2e102d" stroke="#e10098" stroke-width="2.5" />
+              <text x="340" y="133" fill="#ff80d5" font-size="14" font-weight="800" text-anchor="middle">Netflix Federated GraphQL Gateway (Unified Supergraph)</text>
+              <text x="340" y="154" fill="#cbd5e1" font-size="11.5" text-anchor="middle">Single Endpoint (POST /graphql) · Query Planning · Subgraph Aggregation</text>
+
+              <!-- Arrows Client -> Gateway -->
+              <line x1="115" y1="59" x2="220" y2="105" stroke="#e10098" stroke-width="2" />
+              <line x1="340" y1="59" x2="340" y2="105" stroke="#e10098" stroke-width="2" />
+              <line x1="565" y1="59" x2="460" y2="105" stroke="#e10098" stroke-width="2" />
+
+              <!-- Subgraphs (Spring Boot + Spring for GraphQL / DGS) -->
+              <rect x="18" y="230" width="152" height="100" rx="8" fill="#0f172a" stroke="#38bdf8" stroke-width="2" />
+              <text x="94" y="255" fill="#38bdf8" font-size="12" font-weight="800" text-anchor="middle">Catalog Subgraph</text>
+              <text x="94" y="275" fill="#94a3b8" font-size="10.5" text-anchor="middle">Spring Boot + GraphQL</text>
+              <text x="94" y="298" fill="#e2e8f0" font-size="11" font-family="monospace" text-anchor="middle">type Movie, Show</text>
+              <text x="94" y="315" fill="#cbd5e1" font-size="10.5" text-anchor="middle">title, synopsis, cast</text>
+
+              <rect x="182" y="230" width="152" height="100" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="2" />
+              <text x="258" y="255" fill="#34d399" font-size="12" font-weight="800" text-anchor="middle">Personalization</text>
+              <text x="258" y="275" fill="#94a3b8" font-size="10.5" text-anchor="middle">Spring Boot + GraphQL</text>
+              <text x="258" y="298" fill="#e2e8f0" font-size="11" font-family="monospace" text-anchor="middle">extend type Movie</text>
+              <text x="258" y="315" fill="#cbd5e1" font-size="10.5" text-anchor="middle">matchScore, artworkUrl</text>
+
+              <rect x="346" y="230" width="152" height="100" rx="8" fill="#0f172a" stroke="#f59e0b" stroke-width="2" />
+              <text x="422" y="255" fill="#fbbf24" font-size="12" font-weight="800" text-anchor="middle">Playback Subgraph</text>
+              <text x="422" y="275" fill="#94a3b8" font-size="10.5" text-anchor="middle">Spring Boot + GraphQL</text>
+              <text x="422" y="298" fill="#e2e8f0" font-size="11" font-family="monospace" text-anchor="middle">extend type Movie</text>
+              <text x="422" y="315" fill="#cbd5e1" font-size="10.5" text-anchor="middle">streamManifest, drm</text>
+
+              <rect x="510" y="230" width="152" height="100" rx="8" fill="#0f172a" stroke="#a855f7" stroke-width="2" />
+              <text x="586" y="255" fill="#c084fc" font-size="12" font-weight="800" text-anchor="middle">Studio Production</text>
+              <text x="586" y="275" fill="#94a3b8" font-size="10.5" text-anchor="middle">Spring Boot + GraphQL</text>
+              <text x="586" y="298" fill="#e2e8f0" font-size="11" font-family="monospace" text-anchor="middle">type Production</text>
+              <text x="586" y="315" fill="#cbd5e1" font-size="10.5" text-anchor="middle">budget, shootingSchedule</text>
+
+              <!-- Arrows Gateway -> Subgraphs -->
+              <line x1="200" y1="170" x2="94" y2="230" stroke="#38bdf8" stroke-width="2" />
+              <line x1="290" y1="170" x2="258" y2="230" stroke="#10b981" stroke-width="2" />
+              <line x1="390" y1="170" x2="422" y2="230" stroke="#f59e0b" stroke-width="2" />
+              <line x1="480" y1="170" x2="586" y2="230" stroke="#a855f7" stroke-width="2" />
+            </svg>
+            <div class="diagram-caption">▲ Netflix의 Federated GraphQL 아키텍처: 각 도메인 팀의 Spring Boot 서버가 하나의 Movie 타입을 공동으로 완성</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 06: CH 01 - OTHER COMPANIES USING GRAPHQL
+         =================================================================== -->
+    <section class="slide" data-chapter="ch1" data-title="Ch 01. 글로벌 및 국내 대표 기업의 GraphQL 도입 사례">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch1">Chapter 01 · GraphQL의 소개</span>
+            <span class="badge badge-sub">1.5 Industry Adoption</span>
+          </div>
+          <h2 class="slide-title">Netflix 외에 GraphQL을 핵심 인프라로 사용하는 기업들</h2>
+          <p class="slide-subtitle">퍼블릭 Open API부터 이커머스 트랜잭션, 슈퍼앱 BFF(Backend For Frontend)까지 산업 전반의 표준으로 자리 잡았습니다.</p>
+        </div>
+
+        <div class="grid-3">
+          <div class="card card-pink">
+            <div class="card-title">🐙 GitHub (API v4)</div>
+            <p><strong>REST v3 → GraphQL v4 전환의 교과서</strong></p>
+            <ul>
+              <li>기존 REST API v3에서 PR 목록과 각 PR의 커밋 상태, 코드 리뷰어, 이슈 라벨, CI 체크 결과를 가져오려면 수십 번의 HTTP 호출이 필요했습니다.</li>
+              <li><strong>GitHub GraphQL API v4</strong>를 통해 개발자가 단 1회의 쿼리로 원하는 중첩 저장소 정보를 정확히 가져올 수 있도록 혁신했습니다.</li>
+            </ul>
+          </div>
+
+          <div class="card card-green">
+            <div class="card-title">🛍️ Shopify (Storefront &amp; Admin)</div>
+            <p><strong>REST Admin API 공식 Deprecated 선언</strong></p>
+            <ul>
+              <li>전 세계 수백만 가맹점의 상품·재고·장바구니·결제를 GraphQL로 처리하며 블랙프라이데이 초당 수십만 요청을 감당합니다.</li>
+              <li><strong>2024년부터 REST Admin API를 공식 Deprecated 처리</strong>하고 모든 신규 앱 개발의 유일한 표준으로 GraphQL을 지정했습니다.</li>
+            </ul>
+          </div>
+
+          <div class="card card-blue">
+            <div class="card-title">📱 Meta (Facebook &amp; Instagram)</div>
+            <p><strong>GraphQL의 탄생지 (2012~)</strong></p>
+            <ul>
+              <li>수십억 사용자의 소셜 그래프(게시물, 작성자, 댓글, 대댓글, 좋아요, 친구 관계)를 저속 모바일 네트워크에서도 단일 왕복으로 렌더링하기 위해 창시했습니다.</li>
+              <li>클라이언트 프레임워크인 <strong>Relay</strong>와 결합해 극한의 최적화를 수행합니다.</li>
+            </ul>
+          </div>
+
+          <div class="card card-amber">
+            <div class="card-title">🏠 Airbnb &amp; 💳 PayPal</div>
+            <p><strong>UI 실험 속도 3배 향상 &amp; 결제 전환율 개선</strong></p>
+            <ul>
+              <li><strong>Airbnb</strong>: 프론트엔드 엔지니어가 백엔드 DTO 변경을 기다리지 않고 스키마에서 필요한 필드를 조합해 A/B 테스트 속도를 3배 이상 단축했습니다.</li>
+              <li><strong>PayPal</strong>: Checkout 과정에서 다중 REST 호출로 발생하던 네트워크 지연을 GraphQL로 줄여 실제 결제 완료율을 높였습니다.</li>
+            </ul>
+          </div>
+
+          <div class="card card-indigo">
+            <div class="card-title">🇰🇷 국내 테크 기업 (당근, 토스, 카카오 등)</div>
+            <p><strong>슈퍼앱 BFF &amp; 복합 도메인 워크벤치</strong></p>
+            <ul>
+              <li>홈 피드처럼 커뮤니티·중고거래·동네광고·페이 등 서로 다른 마이크로서비스 데이터를 한 화면에 조합해야 하는 <strong>BFF 게이트웨이</strong>에 적극 도입하고 있습니다.</li>
+            </ul>
+          </div>
+
+          <div class="card card-pink">
+            <div class="card-title">🏦 금융/보험 엔터프라이즈 워크벤치</div>
+            <p><strong>상품 · 리스크 · 언더라이팅 통합 조회</strong></p>
+            <ul>
+              <li>본 프로젝트(<code class="inline">Ontology2GraphQL</code>)처럼 <strong>보험상품(Product) + 고객위험(Risk) + 인수심사(Underwriting)</strong> 3개 도메인을 한 화면에서 다루는 영업/심사 시스템에 최적입니다.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 07: CH 01 - FIRST HANDS-ON WITH CURL & SPRING
+         =================================================================== -->
+    <section class="slide" data-chapter="ch1" data-title="Ch 01. 첫 번째 실습: curl 요청과 Spring for GraphQL 응답">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch1">Chapter 01 · GraphQL의 소개</span>
+            <span class="badge badge-sub">1.6 First Hands-on</span>
+          </div>
+          <h2 class="slide-title">첫 번째 맛보기: <code class="inline">curl</code>과 Spring for GraphQL의 동작 흐름</h2>
+          <p class="slide-subtitle">클라이언트가 <code class="inline">POST /graphql</code>로 요청한 필드 모양 그대로 서버가 JSON을 만들어 반환하는 과정을 확인합니다.</p>
+        </div>
+
+        <div class="grid-2">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+            <div class="code-panel">
+              <div class="code-header">
+                <span class="code-lang">1. Server — OntologyGraphQLController.java</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+              </div>
+              <pre class="code-body"><span class="an">@Controller</span>
+<span class="kw">public class</span> <span class="ty">OntologyGraphQLController</span> {
+
+    <span class="kw">private final</span> <span class="ty">ProductMockProvider</span> productProvider;
+
+    <span class="cm">// Query.insuranceProduct(productId: ID!) 필드에 자동 매핑</span>
+    <span class="an">@QueryMapping</span>
+    <span class="kw">public</span> <span class="ty">InsuranceProduct</span> <span class="fn">insuranceProduct</span>(<span class="an">@Argument</span> <span class="ty">String</span> productId) {
+        <span class="kw">return</span> productProvider.getProductById(
+            productId, <span class="str">"Query.insuranceProduct"</span>
+        );
+    }
+}</pre>
+            </div>
+
+            <div class="code-panel">
+              <div class="code-header">
+                <span class="code-lang">2. Client — curl HTTP POST 호출</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+              </div>
+              <pre class="code-body">curl -X POST http://localhost:8080/graphql \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{
+    "query": "query { insuranceProduct(productId: \"PROD-HLT-001\") { productId productName baseMonthlyPremium hasCoverage { coverageCode coverageName } } }"
+  }'</span></pre>
+            </div>
+          </div>
+
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">3. Response — 클라이언트가 요청한 모양과 100% 일치하는 JSON 응답</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body">{
+  <span class="str">"data"</span>: {
+    <span class="str">"insuranceProduct"</span>: {
+      <span class="str">"productId"</span>: <span class="str">"PROD-HLT-001"</span>,
+      <span class="str">"productName"</span>: <span class="str">"무배당 시그니처 100세 종합건강보험"</span>,
+      <span class="str">"baseMonthlyPremium"</span>: <span class="num">89000</span>,
+      <span class="str">"hasCoverage"</span>: [
+        {
+          <span class="str">"coverageCode"</span>: <span class="str">"COV-CANCER-01"</span>,
+          <span class="str">"coverageName"</span>: <span class="str">"일반암진단비(특약)"</span>
+        },
+        {
+          <span class="str">"coverageCode"</span>: <span class="str">"COV-BRAIN-02"</span>,
+          <span class="str">"coverageName"</span>: <span class="str">"뇌혈관질환진단비"</span>
+        },
+        {
+          <span class="str">"coverageCode"</span>: <span class="str">"COV-HEART-03"</span>,
+          <span class="str">"coverageName"</span>: <span class="str">"허혈성심장질환진단비"</span>
+        }
+      ]
+    }
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 08: CH 02 - SINGLE ENDPOINT ARCHITECTURE
+         =================================================================== -->
+    <section class="slide" data-chapter="ch2" data-title="Ch 02. Single Endpoint (POST /graphql) 아키텍처">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch2">Chapter 02 · GraphQL 특징과 장점</span>
+            <span class="badge badge-sub">2.1 Single Endpoint &amp; Multiplexing</span>
+          </div>
+          <h2 class="slide-title">핵심 특징 ①: Single Endpoint (<code class="inline">POST /graphql</code>)</h2>
+          <p class="slide-subtitle">REST가 리소스마다 별도의 URL을 만든다면, GraphQL은 <strong>단 하나의 엔드포인트</strong>로 모든 도메인 쿼리를 조합(Multiplexing)합니다.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="diagram-box">
+            <svg viewBox="0 0 620 230" width="100%" height="215" xmlns="http://www.w3.org/2000/svg">
+              <!-- REST Side -->
+              <rect x="10" y="10" width="285" height="210" rx="10" fill="#161f30" stroke="#475569" />
+              <text x="152" y="34" fill="#94a3b8" font-size="12" font-weight="800" text-anchor="middle">REST API: 리소스별 다중 URI</text>
+              <rect x="25" y="95" width="75" height="45" rx="6" fill="#1e293b" stroke="#64748b" />
+              <text x="62" y="122" fill="#fff" font-size="11" font-weight="700" text-anchor="middle">Client</text>
+
+              <rect x="145" y="50" width="135" height="32" rx="5" fill="#0f172a" stroke="#64748b" />
+              <text x="212" y="70" fill="#cbd5e1" font-size="10.5" font-family="monospace" text-anchor="middle">GET /api/products</text>
+
+              <rect x="145" y="92" width="135" height="32" rx="5" fill="#0f172a" stroke="#64748b" />
+              <text x="212" y="112" fill="#cbd5e1" font-size="10.5" font-family="monospace" text-anchor="middle">GET /api/applicants</text>
+
+              <rect x="145" y="134" width="135" height="32" rx="5" fill="#0f172a" stroke="#64748b" />
+              <text x="212" y="154" fill="#cbd5e1" font-size="10.5" font-family="monospace" text-anchor="middle">GET /api/uw/rules</text>
+
+              <rect x="145" y="176" width="135" height="32" rx="5" fill="#0f172a" stroke="#64748b" />
+              <text x="212" y="196" fill="#cbd5e1" font-size="10.5" font-family="monospace" text-anchor="middle">POST /api/uw/simulate</text>
+
+              <line x1="100" y1="110" x2="145" y2="66" stroke="#94a3b8" stroke-width="1.5" />
+              <line x1="100" y1="115" x2="145" y2="108" stroke="#94a3b8" stroke-width="1.5" />
+              <line x1="100" y1="120" x2="145" y2="150" stroke="#94a3b8" stroke-width="1.5" />
+              <line x1="100" y1="125" x2="145" y2="192" stroke="#94a3b8" stroke-width="1.5" />
+
+              <!-- GraphQL Side -->
+              <rect x="315" y="10" width="295" height="210" rx="10" fill="#1b1429" stroke="#e10098" />
+              <text x="462" y="34" fill="#ff80d5" font-size="12" font-weight="800" text-anchor="middle">GraphQL API: 단일 엔드포인트</text>
+
+              <rect x="330" y="95" width="70" height="45" rx="6" fill="#1e293b" stroke="#e10098" />
+              <text x="365" y="122" fill="#fff" font-size="11" font-weight="700" text-anchor="middle">Client</text>
+
+              <rect x="425" y="85" width="90" height="65" rx="8" fill="#2e102d" stroke="#e10098" stroke-width="2" />
+              <text x="470" y="113" fill="#ff66c4" font-size="11" font-weight="800" text-anchor="middle">POST</text>
+              <text x="470" y="130" fill="#fff" font-size="11.5" font-family="monospace" font-weight="700" text-anchor="middle">/graphql</text>
+
+              <line x1="400" y1="117" x2="425" y2="117" stroke="#e10098" stroke-width="2.5" />
+
+              <rect x="535" y="55" width="65" height="32" rx="4" fill="#0f172a" stroke="#38bdf8" />
+              <text x="567" y="75" fill="#7dd3fc" font-size="10" text-anchor="middle">Product</text>
+
+              <rect x="535" y="101" width="65" height="32" rx="4" fill="#0f172a" stroke="#10b981" />
+              <text x="567" y="121" fill="#6ee7b7" font-size="10" text-anchor="middle">Risk</text>
+
+              <rect x="535" y="147" width="65" height="32" rx="4" fill="#0f172a" stroke="#f59e0b" />
+              <text x="567" y="167" fill="#fcd34d" font-size="10" text-anchor="middle">UW</text>
+
+              <line x1="515" y1="105" x2="535" y2="71" stroke="#38bdf8" stroke-width="1.5" />
+              <line x1="515" y1="117" x2="535" y2="117" stroke="#10b981" stroke-width="1.5" />
+              <line x1="515" y1="130" x2="535" y2="163" stroke="#f59e0b" stroke-width="1.5" />
+            </svg>
+            <div class="diagram-caption">▲ 화면 초기화 시 3개 도메인 데이터가 필요할 때: REST는 3회 호출, GraphQL은 1회 호출로 통합</div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div class="code-panel">
+              <div class="code-header">
+                <span class="code-lang">curl 예제: 단일 요청으로 3개 도메인 루트 쿼리 동시 조회</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+              </div>
+              <pre class="code-body">curl -X POST http://localhost:8080/graphql \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{
+    "query": "query InitWorkbench {
+      insuranceProducts { productId productName }
+      applicantProfiles { applicantId applicantName }
+      underwritingRules { ruleId ruleCode }
+    }"
+  }'</span></pre>
+            </div>
+
+            <div class="code-panel">
+              <div class="code-header">
+                <span class="code-lang">Spring for GraphQL — 각 루트 필드별 독립 @QueryMapping</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+              </div>
+              <pre class="code-body"><span class="an">@QueryMapping</span>
+<span class="kw">public</span> <span class="ty">List</span>&lt;<span class="ty">InsuranceProduct</span>&gt; <span class="fn">insuranceProducts</span>(<span class="an">@Argument</span> <span class="ty">String</span> category) {
+    <span class="kw">return</span> productProvider.getAllProducts(category);
+}
+<span class="an">@QueryMapping</span>
+<span class="kw">public</span> <span class="ty">List</span>&lt;<span class="ty">ApplicantProfile</span>&gt; <span class="fn">applicantProfiles</span>() {
+    <span class="kw">return</span> riskProvider.getAllApplicants();
+}
+<span class="an">@QueryMapping</span>
+<span class="kw">public</span> <span class="ty">List</span>&lt;<span class="ty">UnderwritingRule</span>&gt; <span class="fn">underwritingRules</span>(<span class="an">@Argument</span> <span class="ty">String</span> riskCategory) {
+    <span class="kw">return</span> uwProvider.getRules(riskCategory, <span class="str">"Query.underwritingRules"</span>);
+}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 09: CH 02 - SOLVING OVER-FETCHING
+         =================================================================== -->
+    <section class="slide" data-chapter="ch2" data-title="Ch 02. 장점 ①: Over-fetching 완벽 해결 (Field Projection)">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch2">Chapter 02 · GraphQL 특징과 장점</span>
+            <span class="badge badge-sub">2.2 Zero Over-fetching</span>
+          </div>
+          <h2 class="slide-title">장점 ①: Over-fetching (불필요한 데이터 과다 수신) 완벽 해결</h2>
+          <p class="slide-subtitle">서버 컨트롤러나 DTO를 수정하지 않고도, <strong>클라이언트가 필요한 필드만 선택(Field Projection)</strong>하여 페이로드 크기를 최적화합니다.</p>
+        </div>
+
+        <div class="card card-blue">
+          <div class="card-title">💡 왜 Over-fetching이 문제인가?</div>
+          <p>
+            REST의 <code class="inline">GET /api/v1/products</code>는 항상 모든 상품 속성(담보 목록 + 급부 조건 + 설명까지 수십 개 필드)이 담긴 고정 DTO를 반환합니다.
+            모바일 앱의 드롭다운 메뉴처럼 <strong>오직 상품 ID와 상품명 2개만 필요한 화면</strong>에서도 전체 JSON을 다 내려받아야 하므로 네트워크 대역폭과 배터리, 역직렬화 CPU가 낭비됩니다.
+          </p>
+        </div>
+
+        <div class="grid-2">
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">Case A. 모바일 드롭다운용 쿼리 (2개 필드만 선택 → ~180 Bytes)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body"><span class="cm"># 요청 (curl)</span>
+curl -X POST http://localhost:8080/graphql \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{"query": "{ insuranceProducts { productId productName } }"}'</span>
+
+<span class="cm"># 응답 JSON: 담보/급부 리졸버가 실행조차 되지 않음!</span>
+{
+  <span class="str">"data"</span>: {
+    <span class="str">"insuranceProducts"</span>: [
+      {
+        <span class="str">"productId"</span>: <span class="str">"PROD-HLT-001"</span>,
+        <span class="str">"productName"</span>: <span class="str">"무배당 시그니처 100세 종합건강보험"</span>
+      },
+      {
+        <span class="str">"productId"</span>: <span class="str">"PROD-SIMP-002"</span>,
+        <span class="str">"productName"</span>: <span class="str">"무배당 3·2·5 원패스 유병자 간편건강보험"</span>
+      }
+    ]
+  }
+}</pre>
+          </div>
+
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">Case B. PC 언더라이팅 분석 화면용 쿼리 (깊은 계층 전체 선택)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body"><span class="cm"># 요청 (curl) — 동일한 백엔드 코드, Selection Set만 확장!</span>
+curl -X POST http://localhost:8080/graphql \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{
+    "query": "{ insuranceProducts(category: \"HEALTH\") {
+      productId productName underwritingTrack baseMonthlyPremium
+      hasCoverage {
+        coverageCode coverageName maxCoverageAmount sensitiveRiskCategory
+        hasBenefit { benefitId triggerCondition benefitAmount }
+      }
+    } }"
+  }'</span></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 10: CH 02 - SOLVING UNDER-FETCHING & WATERFALL
+         =================================================================== -->
+    <section class="slide" data-chapter="ch2" data-title="Ch 02. 장점 ②: Under-fetching 및 Network Waterfall 제거">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch2">Chapter 02 · GraphQL 특징과 장점</span>
+            <span class="badge badge-sub">2.3 No More Client-Side Join</span>
+          </div>
+          <h2 class="slide-title">장점 ②: Under-fetching 및 Network Waterfall 완벽 제거</h2>
+          <p class="slide-subtitle">첫 번째 API 응답에서 외래키(<code class="inline">productId</code>, <code class="inline">applicantId</code>)를 꺼내 연쇄 호출하던 고통을 서버 측 <code class="inline">@SchemaMapping</code> 그래프 조립으로 해결합니다.</p>
+        </div>
+
+        <div class="col-7-5">
+          <div class="diagram-box">
+            <svg viewBox="0 0 680 310" width="100%" height="290" xmlns="http://www.w3.org/2000/svg">
+              <!-- Left: REST Waterfall -->
+              <rect x="10" y="10" width="320" height="290" rx="10" fill="#161f30" stroke="#ef4444" stroke-width="1.5" />
+              <text x="170" y="34" fill="#fca5a5" font-size="12.5" font-weight="800" text-anchor="middle">❌ REST: 4회 연쇄 왕복 (Network Waterfall)</text>
+
+              <text x="35" y="65" fill="#fff" font-size="11" font-weight="700">Client</text>
+              <text x="255" y="65" fill="#fff" font-size="11" font-weight="700">REST APIs</text>
+              <line x1="50" y1="75" x2="50" y2="280" stroke="#64748b" stroke-dasharray="3,3" />
+              <line x1="275" y1="75" x2="275" y2="280" stroke="#64748b" stroke-dasharray="3,3" />
+
+              <line x1="50" y1="95" x2="275" y2="95" stroke="#f87171" stroke-width="2" />
+              <text x="162" y="89" fill="#fecaca" font-size="10" text-anchor="middle">1. GET /cases/UW-CASE-2026-002</text>
+              <line x1="275" y1="115" x2="50" y2="115" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,2" />
+              <text x="162" y="110" fill="#94a3b8" font-size="9.5" text-anchor="middle">prodId="PROD-HLT-001", applId="APPL-1002"</text>
+
+              <line x1="50" y1="145" x2="275" y2="145" stroke="#f87171" stroke-width="2" />
+              <text x="162" y="139" fill="#fecaca" font-size="10" text-anchor="middle">2. GET /products/PROD-HLT-001</text>
+
+              <line x1="50" y1="185" x2="275" y2="185" stroke="#f87171" stroke-width="2" />
+              <text x="162" y="179" fill="#fecaca" font-size="10" text-anchor="middle">3. GET /applicants/APPL-1002</text>
+
+              <line x1="50" y1="225" x2="275" y2="225" stroke="#f87171" stroke-width="2" />
+              <text x="162" y="219" fill="#fecaca" font-size="10" text-anchor="middle">4. GET /rules?ids=RULE-01,02</text>
+
+              <rect x="30" y="248" width="265" height="36" rx="6" fill="#450a0a" />
+              <text x="162" y="270" fill="#fca5a5" font-size="10.5" font-weight="700" text-anchor="middle">클라이언트가 직접 4개 응답을 수동 Join 해야 함!</text>
+
+              <!-- Right: GraphQL Single Roundtrip -->
+              <rect x="345" y="10" width="325" height="290" rx="10" fill="#0f2922" stroke="#10b981" stroke-width="1.5" />
+              <text x="507" y="34" fill="#6ee7b7" font-size="12.5" font-weight="800" text-anchor="middle">✅ GraphQL: 단 1회 클라이언트 왕복</text>
+
+              <text x="370" y="65" fill="#fff" font-size="11" font-weight="700">Client</text>
+              <text x="495" y="65" fill="#fff" font-size="11" font-weight="700">GraphQL</text>
+              <text x="615" y="65" fill="#fff" font-size="11" font-weight="700">Services</text>
+              <line x1="385" y1="75" x2="385" y2="280" stroke="#64748b" stroke-dasharray="3,3" />
+              <line x1="515" y1="75" x2="515" y2="280" stroke="#64748b" stroke-dasharray="3,3" />
+              <line x1="635" y1="75" x2="635" y2="280" stroke="#64748b" stroke-dasharray="3,3" />
+
+              <line x1="385" y1="100" x2="515" y2="100" stroke="#10b981" stroke-width="2.5" />
+              <text x="450" y="93" fill="#a7f3d0" font-size="10" font-weight="700" text-anchor="middle">POST /graphql (1회)</text>
+
+              <line x1="515" y1="120" x2="635" y2="120" stroke="#38bdf8" stroke-width="1.8" />
+              <text x="575" y="114" fill="#7dd3fc" font-size="9.5" text-anchor="middle">@QueryMapping (Case)</text>
+
+              <line x1="515" y1="155" x2="635" y2="155" stroke="#38bdf8" stroke-width="1.8" />
+              <text x="575" y="149" fill="#7dd3fc" font-size="9.5" text-anchor="middle">@SchemaMapping (Prod)</text>
+
+              <line x1="515" y1="190" x2="635" y2="190" stroke="#38bdf8" stroke-width="1.8" />
+              <text x="575" y="184" fill="#7dd3fc" font-size="9.5" text-anchor="middle">@SchemaMapping (Risk)</text>
+
+              <line x1="515" y1="225" x2="385" y2="225" stroke="#10b981" stroke-width="2.5" />
+              <text x="450" y="218" fill="#a7f3d0" font-size="10" font-weight="700" text-anchor="middle">완성된 트리 JSON</text>
+
+              <rect x="365" y="248" width="285" height="36" rx="6" fill="#064e3b" />
+              <text x="507" y="270" fill="#6ee7b7" font-size="10.5" font-weight="700" text-anchor="middle">내부 고속망에서 서버가 조립 후 1회 응답!</text>
+            </svg>
+          </div>
+
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">curl: 3개 도메인 통합 그래프 단 1회 호출</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body">curl -X POST http://localhost:8080/graphql \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{
+    "query": "query GetFullCase {
+      underwritingCase(caseId: \"UW-CASE-2026-002\") {
+        caseId
+        uwStatus
+        targetProduct {
+          productName
+          underwritingTrack
+        }
+        targetApplicant {
+          applicantName
+          riskAssessment {
+            totalRiskScore
+            riskGrade
+          }
+        }
+        matchedRules {
+          ruleCode
+          actionType
+        }
+        decision {
+          decisionOutcome
+          finalMonthlyPremium
+        }
+      }
+    }"
+  }'</span></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 11: CH 02 - STRONG TYPING & INTROSPECTION
+         =================================================================== -->
+    <section class="slide" data-chapter="ch2" data-title="Ch 02. 장점 ③ & ④: 강력한 타입 시스템과 Introspection">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch2">Chapter 02 · GraphQL 특징과 장점</span>
+            <span class="badge badge-sub">2.4 Type System &amp; Introspection</span>
+          </div>
+          <h2 class="slide-title">장점 ③ &amp; ④: 강력한 타입 계약과 Introspection(자체 문서화)</h2>
+          <p class="slide-subtitle">Swagger 문서를 따로 관리하다 코드와 어긋나는 일(Documentation Drift)이 원천적으로 불가능합니다.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card card-pink">
+            <div class="card-title">🛡️ 장점 ③: Strongly Typed Contract (강력한 정적 타입)</div>
+            <ul>
+              <li>GraphQL 서버는 반드시 SDL 스키마(<code class="inline">schema.graphql</code>)가 있어야 구동됩니다.</li>
+              <li>모든 필드의 타입(<code class="inline">String!</code>, <code class="inline">Int!</code>, <code class="inline">[Coverage!]!</code>)이 보장되며, 잘못된 필드나 타입을 요청하면 <strong>컨트롤러 코드가 실행되기 전에 엔진의 Validation 단계에서 즉시 차단</strong>됩니다.</li>
+              <li>프론트엔드는 <code class="inline">GraphQL Code Generator</code>를 통해 스키마로부터 TypeScript 타입을 100% 자동 생성할 수 있습니다.</li>
+            </ul>
+          </div>
+
+          <div class="card card-green">
+            <div class="card-title">🔎 장점 ④: Introspection (<code class="inline">__schema</code>, <code class="inline">__type</code>)</div>
+            <ul>
+              <li>GraphQL 표준 스펙은 <strong>서버 스스로 자신의 스키마 구조를 질의응답할 수 있는 메타 필드(<code class="inline">__schema</code>, <code class="inline">__type</code>)</strong>를 내장하고 있습니다.</li>
+              <li><strong>GraphiQL</strong>(<code class="inline">http://localhost:8080/graphiql</code>), Postman, IDE 플러그인이 서버에 접속하는 즉시 이 Introspection 쿼리를 날려 <strong>실시간 자동완성(Auto-complete)과 문서 탐색기</strong>를 구성합니다.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">curl 실습 1: 서버의 모든 타입 목록 Introspection 조회</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body">curl -X POST http://localhost:8080/graphql \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{
+    "query": "{
+      __schema {
+        queryType { name }
+        mutationType { name }
+        types { name kind description }
+      }
+    }"
+  }'</span></pre>
+          </div>
+
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">curl 실습 2: 특정 타입(UnderwritingCase)의 상세 명세 조회</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body">curl -X POST http://localhost:8080/graphql \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{
+    "query": "{
+      __type(name: \"UnderwritingCase\") {
+        name
+        description
+        fields {
+          name
+          description
+          type { name kind ofType { name kind } }
+        }
+      }
+    }"
+  }'</span></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 12: CH 02 - PARTIAL SUCCESS & EXTENSIONS
+         =================================================================== -->
+    <section class="slide" data-chapter="ch2" data-title="Ch 02. 장점 ⑤ & ⑥: 부분 성공(Partial Success)과 extensions">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch2">Chapter 02 · GraphQL 특징과 장점</span>
+            <span class="badge badge-sub">2.5 Partial Success &amp; Extensions</span>
+          </div>
+          <h2 class="slide-title">장점 ⑤ &amp; ⑥: 부분 성공(장애 격리)과 <code class="inline">extensions</code> 관측성</h2>
+          <p class="slide-subtitle">GraphQL 표준 응답 JSON은 최상위에 <code class="inline">data</code>, <code class="inline">errors</code>, <code class="inline">extensions</code> 3개의 예약 키를 통해 우아한 장애 격리와 메타데이터 전달을 지원합니다.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">장점 ⑤: 하위 서비스 1개 장애 시 data + errors 공존 (Partial Success)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body"><span class="cm">// Risk 서비스만 일시 장애가 발생해도, Product 정보는 정상 렌더링 가능!</span>
+{
+  <span class="str">"data"</span>: {
+    <span class="str">"underwritingCase"</span>: {
+      <span class="str">"caseId"</span>: <span class="str">"UW-CASE-2026-002"</span>,
+      <span class="str">"uwStatus"</span>: <span class="str">"SUBSTANDARD_REVIEW"</span>,
+      <span class="str">"targetProduct"</span>: {
+        <span class="str">"productName"</span>: <span class="str">"무배당 시그니처 100세 종합건강보험"</span>
+      },
+      <span class="str">"targetApplicant"</span>: <span class="kw">null</span>
+    }
+  },
+  <span class="str">"errors"</span>: [
+    {
+      <span class="str">"message"</span>: <span class="str">"Risk Assessment Service 응답 지연"</span>,
+      <span class="str">"path"</span>: [<span class="str">"underwritingCase"</span>, <span class="str">"targetApplicant"</span>],
+      <span class="str">"extensions"</span>: { <span class="str">"classification"</span>: <span class="str">"INTERNAL_ERROR"</span> }
+    }
+  ]
+}</pre>
+          </div>
+
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">장점 ⑥: WebGraphQlInterceptor로 extensions에 데이터 계보(Lineage) 주입</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body"><span class="cm">// OntologyGraphQLConfig.java</span>
+<span class="an">@Bean</span>
+<span class="kw">public</span> <span class="ty">WebGraphQlInterceptor</span> <span class="fn">ontologyLineageInterceptor</span>(
+        <span class="ty">LineageTraceCollector</span> lineageCollector) {
+    <span class="kw">return</span> (request, chain) -&gt; {
+        lineageCollector.startRequest();
+        <span class="kw">return</span> chain.next(request).map(response -&gt; {
+            <span class="ty">List</span>&lt;<span class="ty">LineageStep</span>&gt; steps = lineageCollector.finishRequest();
+            <span class="kw">return</span> response.transform(builder -&gt;
+                builder.extensions(<span class="ty">Map</span>.of(
+                    <span class="str">"ontologyLineage"</span>, steps,
+                    <span class="str">"totalBackendCalls"</span>, steps.size()
+                ))
+            );
+        });
+    };
+}</pre>
+          </div>
+        </div>
+
+        <div class="highlight-box">
+          ⚡ <strong>실무 포인트</strong>: REST 오케스트레이션 API에서는 하위 마이크로서비스 3개 중 1개만 타임아웃이 나도 전체 HTTP 응답이 <code class="inline">500 Internal Server Error</code>로 실패하기 쉽습니다. 반면 GraphQL은 Nullable 필드에 한해 실패한 노드만 <code class="inline">null</code>로 비우고 성공한 나머지 그래프(<code class="inline">data</code>)와 실패 경로(<code class="inline">errors[].path</code>)를 함께 내려주어 프론트엔드의 부분 폴백(Partial Fallback UI) 구현이 매우 쉽습니다.
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 13: CH 02 - REST VS GRAPHQL SUMMARY TABLE
+         =================================================================== -->
+    <section class="slide" data-chapter="ch2" data-title="Ch 02. REST API vs GraphQL API 핵심 비교 총정리">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch2">Chapter 02 · GraphQL 특징과 장점</span>
+            <span class="badge badge-sub">2.6 Summary Matrix</span>
+          </div>
+          <h2 class="slide-title">REST API vs GraphQL API 핵심 비교 총정리</h2>
+          <p class="slide-subtitle">두 기술의 설계 철학 차이를 한눈에 비교합니다.</p>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:20%">비교 항목</th>
+              <th style="width:40%">REST API</th>
+              <th style="width:40%">GraphQL API</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>엔드포인트 구조</strong></td>
+              <td>리소스별 다중 URI + HTTP Method 조합<br/>(<code class="inline">GET /products</code>, <code class="inline">GET /cases/{id}</code>, <code class="inline">POST /simulate</code>)</td>
+              <td><strong>단일 엔드포인트 (<code class="inline">POST /graphql</code>)</strong><br/>요청 본문의 Query/Mutation 문서로 작업 구분</td>
+            </tr>
+            <tr>
+              <td><strong>응답 데이터 결정권</strong></td>
+              <td><strong>Server-Driven</strong>: 서버 컨트롤러의 DTO 구조로 고정됨 (Over-fetching 발생)</td>
+              <td><strong>Client-Driven</strong>: 클라이언트가 Selection Set으로 필요한 필드만 지정</td>
+            </tr>
+            <tr>
+              <td><strong>복합 도메인 데이터 조립</strong></td>
+              <td>클라이언트가 여러 API를 연쇄 호출해 직접 조립 (Under-fetching &amp; Waterfall)</td>
+              <td>서버의 <code class="inline">@SchemaMapping</code> / <code class="inline">@BatchMapping</code> 리졸버들이 그래프를 조립해 <strong>단 1회 응답</strong></td>
+            </tr>
+            <tr>
+              <td><strong>스키마 및 타입 검증</strong></td>
+              <td>선택적 (Swagger/OpenAPI 어노테이션 별도 관리 필요, 코드와 불일치 위험)</td>
+              <td><strong>필수 (Mandatory)</strong>: SDL 스키마 없이는 구동 불가, 엔진이 실행 전 자동 타입 검증</td>
+            </tr>
+            <tr>
+              <td><strong>API 버전 진화</strong></td>
+              <td>URL 버전 분리 (<code class="inline">/api/v1/...</code>, <code class="inline">/api/v2/...</code>)</td>
+              <td>신규 필드 추가 + <code class="inline">@deprecated</code> 디렉티브를 통한 <strong>Versionless 진화</strong></td>
+            </tr>
+            <tr>
+              <td><strong>에러 처리 방식</strong></td>
+              <td>HTTP Status Code (<code class="inline">200</code>, <code class="inline">400</code>, <code class="inline">404</code>, <code class="inline">500</code>) — 전체 성공 또는 전체 실패</td>
+              <td>HTTP <code class="inline">200 OK</code> 내부에 <code class="inline">data</code>와 <code class="inline">errors</code> 배열 분리 — <strong>부분 성공(Partial Success) 지원</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 14: CH 03 - SDL OVERVIEW & SCALARS
+         =================================================================== -->
+    <section class="slide" data-chapter="ch3" data-title="Ch 03. GraphQL Schema(SDL) 구조와 Scalar 타입">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch3">Chapter 03 · GraphQL Schema 완벽 가이드</span>
+            <span class="badge badge-sub">3.1 SDL &amp; Scalars</span>
+          </div>
+          <h2 class="slide-title">SDL(Schema Definition Language) 기본 구조와 Scalar 타입</h2>
+          <p class="slide-subtitle">스키마(<code class="inline">*.graphqls</code>)는 서버가 제공할 수 있는 데이터 그래프의 헌법(Contract)입니다.</p>
+        </div>
+
+        <div class="col-5-7">
+          <div class="card card-green">
+            <div class="card-title">🧱 GraphQL SDL의 5대 핵심 구성요소</div>
+            <ol>
+              <li><strong><code class="inline">type</code> (Object Type)</strong>: 서버가 반환하는 도메인 엔티티 노드와 필드 정의</li>
+              <li><strong><code class="inline">input</code> (Input Object Type)</strong>: Query/Mutation 인자로 전달할 구조체 정의</li>
+              <li><strong><code class="inline">type Query</code></strong>: 읽기(조회) 전용 루트 진입점</li>
+              <li><strong><code class="inline">type Mutation</code></strong>: 쓰기(생성/수정/삭제/시뮬레이션) 전용 루트 진입점</li>
+              <li><strong><code class="inline">directive @...</code></strong>: 타입·필드·쿼리에 부착하는 메타데이터 및 실행 제어자</li>
+            </ol>
+            <p style="margin-top:6px; font-size:13px; color:#94a3b8;">※ 그 외 열거형(<code class="inline">enum</code>), 다형성 인터페이스(<code class="inline">interface</code>), 유니온(<code class="inline">union</code>), 실시간 스트리밍(<code class="inline">type Subscription</code>)을 지원합니다.</p>
+          </div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Scalar 타입</th>
+                <th>의미 및 규격</th>
+                <th>Java / Spring 매핑 타입</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code class="inline">ID</code></td>
+                <td>고유 식별자. 직렬화는 문자열(<code class="inline">String</code>)과 같으나 클라이언트 정규화 캐시(Normalized Cache)의 식별 키로 사용됨</td>
+                <td><code class="inline">String</code>, <code class="inline">Long</code>, <code class="inline">UUID</code></td>
+              </tr>
+              <tr>
+                <td><code class="inline">String</code></td>
+                <td>UTF-8 텍스트 문자열</td>
+                <td><code class="inline">String</code></td>
+              </tr>
+              <tr>
+                <td><code class="inline">Int</code></td>
+                <td>부호 있는 32비트 정수 (<code class="inline">-2^31 ~ 2^31-1</code>)</td>
+                <td><code class="inline">int</code>, <code class="inline">Integer</code></td>
+              </tr>
+              <tr>
+                <td><code class="inline">Float</code></td>
+                <td>부호 있는 배정밀도 부동소수점 실수 (IEEE 754)</td>
+                <td><code class="inline">double</code>, <code class="inline">Double</code>, <code class="inline">Float</code></td>
+              </tr>
+              <tr>
+                <td><code class="inline">Boolean</code></td>
+                <td>참/거짓 (<code class="inline">true</code> / <code class="inline">false</code>)</td>
+                <td><code class="inline">boolean</code>, <code class="inline">Boolean</code></td>
+              </tr>
+              <tr>
+                <td><strong>Custom Scalar</strong></td>
+                <td><code class="inline">scalar DateTime</code>, <code class="inline">scalar BigDecimal</code>, <code class="inline">scalar JSON</code> 등 (<code class="inline">graphql-java-extended-scalars</code>로 등록)</td>
+                <td><code class="inline">OffsetDateTime</code>, <code class="inline">BigDecimal</code>, <code class="inline">Map</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 15: CH 03 - NULLABILITY (!) AND LISTS ([...])
+         =================================================================== -->
+    <section class="slide" data-chapter="ch3" data-title="Ch 03. Nullability(!)와 리스트([...])의 4가지 조합 규칙">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch3">Chapter 03 · GraphQL Schema 완벽 가이드</span>
+            <span class="badge badge-sub">3.2 Nullability &amp; Lists</span>
+          </div>
+          <h2 class="slide-title">Nullability(<code class="inline">!</code>)와 리스트(<code class="inline">[...]</code>)의 4가지 조합 완벽 정리</h2>
+          <p class="slide-subtitle">GraphQL의 모든 필드는 기본적으로 <strong>Nullable</strong>이며, 느낌표(<code class="inline">!</code>)가 붙은 위치에 따라 리스트 자체와 원소의 Null 허용 여부가 달라집니다.</p>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:16%">SDL 표기</th>
+              <th style="width:18%">리스트 자체 <code class="inline">null</code> 가능?</th>
+              <th style="width:18%">내부 원소 <code class="inline">null</code> 가능?</th>
+              <th style="width:24%">허용되는 유효한 값 예시</th>
+              <th style="width:24%">거부되는(에러) 값 예시</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code class="inline">[String]</code></td>
+              <td style="color:#38bdf8;font-weight:700;">O (가능)</td>
+              <td style="color:#38bdf8;font-weight:700;">O (가능)</td>
+              <td><code class="inline">null</code>, <code class="inline">[]</code>, <code class="inline">["A", null]</code></td>
+              <td>없음</td>
+            </tr>
+            <tr>
+              <td><code class="inline">[String!]</code></td>
+              <td style="color:#38bdf8;font-weight:700;">O (가능)</td>
+              <td style="color:#ef4444;font-weight:700;">X (불가)</td>
+              <td><code class="inline">null</code>, <code class="inline">[]</code>, <code class="inline">["A", "B"]</code></td>
+              <td><code class="inline">["A", null]</code> (원소에 null 포함 불가)</td>
+            </tr>
+            <tr>
+              <td><code class="inline">[String]!</code></td>
+              <td style="color:#ef4444;font-weight:700;">X (불가)</td>
+              <td style="color:#38bdf8;font-weight:700;">O (가능)</td>
+              <td><code class="inline">[]</code>, <code class="inline">["A", null]</code></td>
+              <td><code class="inline">null</code> (리스트 자체가 null일 수 없음)</td>
+            </tr>
+            <tr style="background:rgba(16, 185, 129, 0.08);">
+              <td><strong style="color:#34d399;"><code class="inline">[String!]!</code></strong></td>
+              <td style="color:#ef4444;font-weight:700;">X (불가)</td>
+              <td style="color:#ef4444;font-weight:700;">X (불가)</td>
+              <td><code class="inline">[]</code>, <code class="inline">["A", "B"]</code></td>
+              <td><code class="inline">null</code>, <code class="inline">["A", null]</code> <strong>(실무 최다 사용 표준)</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="grid-2">
+          <div class="card card-amber">
+            <div class="card-title">⚠️ Null Bubbling (널 버블링) 현상 주의!</div>
+            <p>
+              만약 스키마에서 <code class="inline">targetApplicant: ApplicantProfile!</code>처럼 <strong>Non-Null(<code class="inline">!</code>)</strong>로 선언했는데, 런타임에 리스크 서비스 장애로 해당 리졸버가 <code class="inline">null</code>이나 예외를 반환하면 어떻게 될까요?
+            </p>
+            <p>
+              GraphQL 엔진은 Non-Null 계약을 어기지 않기 위해 <strong>부모 객체(<code class="inline">underwritingCase</code>)까지 통째로 <code class="inline">null</code>로 만들어버립니다(Null Bubbling)!</strong>
+            </p>
+          </div>
+
+          <div class="card card-green">
+            <div class="card-title">✅ 실무 스키마 Nullability 설계 베스트 프랙티스</div>
+            <ul>
+              <li><strong>식별자와 스칼라 필수 속성</strong>(<code class="inline">caseId: ID!</code>, <code class="inline">productName: String!</code>) 및 <strong>컬렉션</strong>(<code class="inline">hasCoverage: [Coverage!]!</code> — 데이터가 없으면 빈 배열 <code class="inline">[]</code> 반환)은 과감하게 <code class="inline">!</code>를 붙입니다.</li>
+              <li>반면 <strong>외부 마이크로서비스를 호출하는 하위 연관 객체</strong>나 <strong>권한에 따라 마스킹/차단될 수 있는 민감 필드</strong>는 의도적으로 <code class="inline">!</code>를 빼서 부분 성공(Partial Success)이 가능하도록 설계합니다.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 16: CH 03 - TYPE VS INPUT
+         =================================================================== -->
+    <section class="slide" data-chapter="ch3" data-title="Ch 03. type(출력 객체) vs input(입력 객체) 완벽 비교">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch3">Chapter 03 · GraphQL Schema 완벽 가이드</span>
+            <span class="badge badge-sub">3.3 Output Type vs Input Type</span>
+          </div>
+          <h2 class="slide-title"><code class="inline">type</code> vs <code class="inline">input</code>: 왜 GraphQL은 출력과 입력 타입을 엄격히 분리할까?</h2>
+          <p class="slide-subtitle">Java에서는 DTO 하나를 요청/응답에 같이 쓰기도 하지만, GraphQL 스펙은 <code class="inline">type</code>을 인자로 쓰는 것을 문법적으로 금지합니다.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">1. type (Output Object Type) — 서버가 반환하는 그래프 노드</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body"><span class="str">"""보험상품 도메인 출력 타입"""</span>
+<span class="kw">type</span> <span class="ty">InsuranceProduct</span> {
+  productId: <span class="ty">ID!</span>
+  productName: <span class="ty">String!</span>
+  baseMonthlyPremium: <span class="ty">Int!</span>
+
+  <span class="cm"># 출력 type의 필드는 자체 인자(Argument)와 리졸버를 가질 수 있음!</span>
+  hasCoverage(riskCategory: <span class="ty">String</span>): [<span class="ty">Coverage!</span>]!
+}</pre>
+          </div>
+
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">2. input (Input Object Type) — 클라이언트가 보내는 입력 구조체</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body"><span class="str">"""언더라이팅 시뮬레이션 요청 입력 전용 타입"""</span>
+<span class="kw">input</span> <span class="ty">UnderwritingSimulationInput</span> {
+  productId: <span class="ty">ID!</span>
+  applicantName: <span class="ty">String!</span>
+  age: <span class="ty">Int!</span>
+  gender: <span class="ty">String!</span> = <span class="str">"F"</span>        <span class="cm"># input 필드는 기본값(Default) 지정 가능!</span>
+  occupationName: <span class="ty">String!</span>
+  occupationGrade: <span class="ty">Int!</span> = <span class="num">1</span>
+  isSmoker: <span class="ty">Boolean!</span>
+  bmi: <span class="ty">Float!</span>
+  riskFactorCodes: [<span class="ty">String!</span>]!  <span class="cm"># 순수 스칼라 또는 다른 input만 포함 가능</span>
+}</pre>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card card-pink">
+            <div class="card-title">이유 ①: 출력 <code class="inline">type</code>은 '동적 계산 필드(인자)'와 '순환 참조'를 포함하기 때문</div>
+            <ul>
+              <li>출력 <code class="inline">type</code>의 필드는 <code class="inline">hasCoverage(riskCategory: String)</code>처럼 파라미터를 받아 서버에서 계산되는 함수(Resolver)일 수 있으며, <code class="inline">Product ↔ Case</code> 양방향 순환 참조를 가질 수 있습니다.</li>
+              <li>반면 클라이언트가 JSON으로 직렬화해 올려보내는 입력값은 순수한 트리 데이터(Value Object)여야 하므로 <code class="inline">input</code>으로 분리됩니다.</li>
+            </ul>
+          </div>
+
+          <div class="card card-blue">
+            <div class="card-title">이유 ②: 보안(Mass Assignment 방지)과 입출력 생명주기 분리</div>
+            <ul>
+              <li>출력 타입(<code class="inline">type UnderwritingCase</code>)에는 서버가 채번하는 <code class="inline">caseId</code>나 심사 판정 결과인 <code class="inline">decision</code>이 들어 있습니다.</li>
+              <li>입력 전용인 <code class="inline">input UnderwritingSimulationInput</code>을 분리함으로써 클라이언트가 조작해서는 안 되는 서버 생성 필드를 스키마 수준에서 원천 차단합니다.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 17: CH 03 - DIRECTIVES (@)
+         =================================================================== -->
+    <section class="slide" data-chapter="ch3" data-title="Ch 03. directive(@) 완벽 정리: 실행 디렉티브 vs 스키마 디렉티브">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch3">Chapter 03 · GraphQL Schema 완벽 가이드</span>
+            <span class="badge badge-sub">3.4 Directives (@)</span>
+          </div>
+          <h2 class="slide-title"><code class="inline">directive</code> (<code class="inline">@</code>) 완벽 정리: 실행 제어와 시맨틱 메타데이터</h2>
+          <p class="slide-subtitle">Java의 <code class="inline">@Annotation</code>처럼 쿼리문이나 스키마 정의에 부착하여 <strong>조건부 필드 실행</strong>이나 <strong>메타데이터/권한/온톨로지 매핑</strong>을 수행합니다.</p>
+        </div>
+
+        <div class="grid-2">
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div class="card card-blue">
+              <div class="card-title">1. Executable Directives (클라이언트가 쿼리문에 작성)</div>
+              <ul>
+                <li><strong><code class="inline">@include(if: Boolean!)</code></strong>: 변수 조건이 <code class="inline">true</code>일 때만 해당 필드를 조회함.</li>
+                <li><strong><code class="inline">@skip(if: Boolean!)</code></strong>: 변수 조건이 <code class="inline">true</code>이면 해당 필드 조회를 건너뜀 (<strong>서버의 <code class="inline">@SchemaMapping</code> 리졸버 자체가 실행되지 않아 비용 절약!</strong>).</li>
+              </ul>
+            </div>
+
+            <div class="code-panel">
+              <div class="code-header">
+                <span class="code-lang">실행 디렉티브(@include, @skip) 활용 쿼리 예제</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+              </div>
+              <pre class="code-body"><span class="kw">query</span> <span class="fn">GetCaseConditional</span>(
+  $caseId: <span class="ty">ID!</span>,
+  $withRules: <span class="ty">Boolean!</span>,
+  $skipApplicant: <span class="ty">Boolean!</span>
+) {
+  <span class="fn">underwritingCase</span>(caseId: $caseId) {
+    caseId
+    uwStatus
+    <span class="cm"># $withRules == true 일 때만 심사 규칙 리졸버 호출</span>
+    matchedRules <span class="an">@include</span>(if: $withRules) {
+      ruleCode
+      ruleName
+    }
+    <span class="cm"># $skipApplicant == true 이면 피보험자 리졸버 생략</span>
+    targetApplicant <span class="an">@skip</span>(if: $skipApplicant) {
+      applicantName
+    }
+  }
+}</pre>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div class="card card-pink">
+              <div class="card-title">2. Type System Directives (서버가 스키마 SDL에 작성)</div>
+              <ul>
+                <li><strong><code class="inline">@deprecated(reason: "...")</code></strong>: 구버전 필드의 지원 중단 예고 및 대체 필드 안내 (표준 내장)</li>
+                <li><strong>Custom Directives</strong>: <code class="inline">directive @이름(...) on OBJECT | FIELD_DEFINITION</code>으로 도메인 계보(<code class="inline">@ontologyClass</code>, <code class="inline">@ontologyProperty</code>)나 권한(<code class="inline">@hasRole</code>) 정의</li>
+              </ul>
+            </div>
+
+            <div class="code-panel">
+              <div class="code-header">
+                <span class="code-lang">스키마 디렉티브(@deprecated, @ontologyProperty) 선언 및 적용</span>
+                <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+              </div>
+              <pre class="code-body"><span class="cm"># 1. 커스텀 디렉티브 선언 (schema.graphql)</span>
+<span class="kw">directive</span> <span class="an">@ontologyProperty</span>(
+  uri: <span class="ty">String!</span>
+  label: <span class="ty">String!</span>
+  range: <span class="ty">String!</span>
+  sourceField: <span class="ty">String!</span>
+  crossServiceJoin: <span class="ty">String</span>
+) <span class="kw">on</span> <span class="ty">FIELD_DEFINITION</span>
+
+<span class="cm"># 2. 타입 필드에 적용</span>
+<span class="kw">type</span> <span class="ty">InsuranceProduct</span> {
+  productId: <span class="ty">ID!</span>
+  baseMonthlyPremium: <span class="ty">Int!</span> <span class="an">@ontologyProperty</span>(
+    uri: <span class="str">"ins:baseMonthlyPremium"</span>,
+    label: <span class="str">"기본 월보험료(원)"</span>,
+    range: <span class="str">"xsd:integer"</span>,
+    sourceField: <span class="str">"base_mm_prem"</span>
+  )
+  oldPrem: <span class="ty">Int</span> <span class="an">@deprecated</span>(reason: <span class="str">"Use baseMonthlyPremium instead"</span>)
+}</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 18: CH 03 - QUERY VS MUTATION EXECUTION SEMANTICS
+         =================================================================== -->
+    <section class="slide" data-chapter="ch3" data-title="Ch 03. Query vs Mutation의 결정적 차이 (병렬 vs 순차 실행)">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch3">Chapter 03 · GraphQL Schema 완벽 가이드</span>
+            <span class="badge badge-sub">3.5 Query vs Mutation Execution Order</span>
+          </div>
+          <h2 class="slide-title"><code class="inline">Query</code> vs <code class="inline">Mutation</code>: 문법만 다른 것이 아니다! (병렬 실행 vs 직렬 실행 보장)</h2>
+          <p class="slide-subtitle">GraphQL 공식 스펙(Execution 섹션)은 <strong>Query 루트 필드의 병렬 실행</strong>과 <strong>Mutation 루트 필드의 순차(Serial) 실행</strong>을 엄격히 구분합니다.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card card-blue">
+            <div class="card-title">⚡ <code class="inline">type Query</code> — 루트 필드 병렬(Parallel) 실행</div>
+            <ul>
+              <li><strong>목적</strong>: 부수 효과(Side-effect)가 없는 순수 데이터 읽기 작업 (REST의 <code class="inline">GET</code>)</li>
+              <li>하나의 <code class="inline">query</code> 블록 안에 여러 루트 필드(<code class="inline">insuranceProducts</code>, <code class="inline">applicantProfiles</code>)를 적으면, 엔진은 응답 속도를 높이기 위해 <strong>동시에 병렬로 실행</strong>할 수 있습니다.</li>
+            </ul>
+            <div class="diagram-box" style="margin-top:8px;">
+              <svg viewBox="0 0 520 130" width="100%" height="120" xmlns="http://www.w3.org/2000/svg">
+                <rect x="15" y="42" width="110" height="44" rx="6" fill="#1e293b" stroke="#38bdf8" />
+                <text x="70" y="68" fill="#fff" font-size="12" font-weight="700" text-anchor="middle">Query 수신</text>
+
+                <rect x="180" y="12" width="195" height="42" rx="6" fill="#0f172a" stroke="#38bdf8" />
+                <text x="277" y="37" fill="#7dd3fc" font-size="11.5" font-family="monospace" text-anchor="middle">1. insuranceProducts()</text>
+
+                <rect x="180" y="74" width="195" height="42" rx="6" fill="#0f172a" stroke="#38bdf8" />
+                <text x="277" y="99" fill="#7dd3fc" font-size="11.5" font-family="monospace" text-anchor="middle">2. applicantProfiles()</text>
+
+                <rect x="420" y="42" width="85" height="44" rx="6" fill="#064e3b" stroke="#10b981" />
+                <text x="462" y="68" fill="#6ee7b7" font-size="11.5" font-weight="700" text-anchor="middle">통합 응답</text>
+
+                <line x1="125" y1="58" x2="180" y2="33" stroke="#38bdf8" stroke-width="2" />
+                <line x1="125" y1="70" x2="180" y2="95" stroke="#38bdf8" stroke-width="2" />
+                <line x1="375" y1="33" x2="420" y2="58" stroke="#10b981" stroke-width="2" />
+                <line x1="375" y1="95" x2="420" y2="70" stroke="#10b981" stroke-width="2" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="card card-pink">
+            <div class="card-title">🔒 <code class="inline">type Mutation</code> — 루트 필드 순차(Serial) 실행 강제</div>
+            <ul>
+              <li><strong>목적</strong>: 데이터 생성/수정/삭제 및 상태 변경 트랜잭션 (REST의 <code class="inline">POST/PUT/DELETE</code>)</li>
+              <li>하나의 <code class="inline">mutation</code> 안에 2개의 변경 작업을 적었을 때 병렬로 돌면 <strong>경쟁 상태(Race Condition)</strong>가 발생합니다. 따라서 스펙 수준에서 <strong>위에서 아래로 1번이 완전히 끝난 뒤 2번을 실행하도록 직렬 실행을 보장</strong>합니다!</li>
+            </ul>
+            <div class="diagram-box" style="margin-top:8px;">
+              <svg viewBox="0 0 520 130" width="100%" height="120" xmlns="http://www.w3.org/2000/svg">
+                <rect x="10" y="42" width="95" height="44" rx="6" fill="#1e293b" stroke="#e10098" />
+                <text x="57" y="68" fill="#fff" font-size="11.5" font-weight="700" text-anchor="middle">Mutation</text>
+
+                <rect x="130" y="42" width="135" height="44" rx="6" fill="#2e102d" stroke="#e10098" />
+                <text x="197" y="62" fill="#ff80d5" font-size="11" font-weight="700" text-anchor="middle">Step 1 완료 대기</text>
+                <text x="197" y="78" fill="#cbd5e1" font-size="10" font-family="monospace" text-anchor="middle">updateProfile()</text>
+
+                <rect x="290" y="42" width="135" height="44" rx="6" fill="#2e102d" stroke="#e10098" />
+                <text x="357" y="62" fill="#ff80d5" font-size="11" font-weight="700" text-anchor="middle">Step 2 순차 실행</text>
+                <text x="357" y="78" fill="#cbd5e1" font-size="10" font-family="monospace" text-anchor="middle">simulateUw()</text>
+
+                <rect x="445" y="42" width="65" height="44" rx="6" fill="#064e3b" stroke="#10b981" />
+                <text x="477" y="68" fill="#6ee7b7" font-size="11.5" font-weight="700" text-anchor="middle">응답</text>
+
+                <line x1="105" y1="64" x2="130" y2="64" stroke="#e10098" stroke-width="2" />
+                <line x1="265" y1="64" x2="290" y2="64" stroke="#e10098" stroke-width="2" />
+                <line x1="425" y1="64" x2="445" y2="64" stroke="#10b981" stroke-width="2" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 19: CH 03 - SERVER IMPLEMENTATION (SCHEMA + CONTROLLER)
+         =================================================================== -->
+    <section class="slide" data-chapter="ch3" data-title="Ch 03. 실전 서버 구현: schema.graphql & Spring Controller">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch3">Chapter 03 · GraphQL Schema 완벽 가이드</span>
+            <span class="badge badge-sub">3.6 Server Implementation</span>
+          </div>
+          <h2 class="slide-title">실전 서버 구현: <code class="inline">schema.graphql</code>과 Spring for GraphQL 컨트롤러 매핑</h2>
+          <p class="slide-subtitle">스키마의 <code class="inline">Query</code>, <code class="inline">Mutation</code>, 그리고 <code class="inline">type</code>의 연관 필드가 Java 코드의 어노테이션과 1:1로 매핑됩니다.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">1. 스키마 정의 — backend/src/main/resources/schema.graphql</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body"><span class="kw">type</span> <span class="ty">UnderwritingCase</span> {
+  caseId: <span class="ty">ID!</span>
+  applicationDate: <span class="ty">String!</span>
+  uwStatus: <span class="ty">String!</span>
+  targetProduct: <span class="ty">InsuranceProduct!</span>      <span class="cm"># → @SchemaMapping 연결</span>
+  targetApplicant: <span class="ty">ApplicantProfile!</span>    <span class="cm"># → @SchemaMapping 연결</span>
+  matchedRules: [<span class="ty">UnderwritingRule!</span>]!    <span class="cm"># → @SchemaMapping 연결</span>
+  decision: <span class="ty">UnderwritingDecision!</span>
+}
+
+<span class="kw">type</span> <span class="ty">Query</span> {
+  <span class="str">"특정 언더라이팅 심사건 단건 조회"</span>
+  <span class="fn">underwritingCase</span>(caseId: <span class="ty">ID!</span>): <span class="ty">UnderwritingCase</span>
+
+  <span class="str">"특정 보험상품 단건 조회"</span>
+  <span class="fn">insuranceProduct</span>(productId: <span class="ty">ID!</span>): <span class="ty">InsuranceProduct</span>
+}
+
+<span class="kw">type</span> <span class="ty">Mutation</span> {
+  <span class="str">"실시간 언더라이팅 인수심사 시뮬레이션 실행"</span>
+  <span class="fn">simulateUnderwriting</span>(
+    input: <span class="ty">UnderwritingSimulationInput!</span>
+  ): <span class="ty">UnderwritingCase!</span>
+}</pre>
+          </div>
+
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">2. 컨트롤러 구현 — OntologyGraphQLController.java</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body"><span class="an">@Controller</span>
+<span class="kw">public class</span> <span class="ty">OntologyGraphQLController</span> {
+
+    <span class="cm">// 1. Query.underwritingCase 매핑</span>
+    <span class="an">@QueryMapping</span>
+    <span class="kw">public</span> <span class="ty">UnderwritingCase</span> <span class="fn">underwritingCase</span>(<span class="an">@Argument</span> <span class="ty">String</span> caseId) {
+        <span class="kw">return</span> uwProvider.getCaseById(caseId);
+    }
+
+    <span class="cm">// 2. Mutation.simulateUnderwriting 매핑</span>
+    <span class="an">@MutationMapping</span>
+    <span class="kw">public</span> <span class="ty">UnderwritingCase</span> <span class="fn">simulateUnderwriting</span>(
+            <span class="an">@Argument</span> <span class="ty">UnderwritingSimulationInput</span> input) {
+        <span class="kw">return</span> uwProvider.simulateCase(input);
+    }
+
+    <span class="cm">// 3. UnderwritingCase.targetProduct 하위 객체 리졸버</span>
+    <span class="an">@SchemaMapping</span>(typeName = <span class="str">"UnderwritingCase"</span>, field = <span class="str">"targetProduct"</span>)
+    <span class="kw">public</span> <span class="ty">InsuranceProduct</span> <span class="fn">resolveTargetProduct</span>(<span class="ty">UnderwritingCase</span> uwCase) {
+        <span class="kw">return</span> productProvider.getProductById(
+            uwCase.targetProductId(),
+            <span class="str">"UnderwritingCase("</span> + uwCase.caseId() + <span class="str">").targetProduct"</span>
+        );
+    }
+
+    <span class="cm">// 4. UnderwritingCase.targetApplicant 하위 객체 리졸버</span>
+    <span class="an">@SchemaMapping</span>(typeName = <span class="str">"UnderwritingCase"</span>, field = <span class="str">"targetApplicant"</span>)
+    <span class="kw">public</span> <span class="ty">ApplicantProfile</span> <span class="fn">resolveTargetApplicant</span>(<span class="ty">UnderwritingCase</span> uwCase) {
+        <span class="kw">return</span> riskProvider.getApplicantById(
+            uwCase.targetApplicantId(),
+            <span class="str">"UnderwritingCase("</span> + uwCase.caseId() + <span class="str">").targetApplicant"</span>
+        );
+    }
+}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 20: CH 03 - QUERY EXAMPLES (VARIABLES, ALIASES, FRAGMENTS)
+         =================================================================== -->
+    <section class="slide" data-chapter="ch3" data-title="Ch 03. 실전 Query 예제: Variables, Aliases, Fragments">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch3">Chapter 03 · GraphQL Schema 완벽 가이드</span>
+            <span class="badge badge-sub">3.7 Advanced Query Patterns</span>
+          </div>
+          <h2 class="slide-title">실전 Query 예제: Variables(<code class="inline">$var</code>), Aliases(별칭), Fragments(조각 재사용)</h2>
+          <p class="slide-subtitle">쿼리 문자열 하드코딩을 피하는 <strong>Variables</strong>와, 동일 필드를 다른 인자로 동시에 비교 조회하는 <strong>Aliases + Fragments</strong> 기법입니다.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">예제 1: Variables($id)를 분리한 안전한 파라미터 바인딩 (curl)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body">curl -X POST http://localhost:8080/graphql \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{
+    "operationName": "GetCaseById",
+    "query": "query GetCaseById($id: ID!) {
+      underwritingCase(caseId: $id) {
+        caseId
+        applicationDate
+        uwStatus
+        targetProduct { productId productName }
+        decision { decisionOutcome finalMonthlyPremium }
+      }
+    }",
+    "variables": {
+      "id": "UW-CASE-2026-002"
+    }
+  }'</span></pre>
+          </div>
+
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">예제 2: Aliases + Fragment로 표준형 vs 간편형 두 상품 비교 조회</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body">curl -X POST http://localhost:8080/graphql \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{
+    "query": "query CompareTwoProducts {
+      standardProduct: insuranceProduct(productId: \"PROD-HLT-001\") {
+        ...ProductSummary
+      }
+      simplifiedProduct: insuranceProduct(productId: \"PROD-SIMP-002\") {
+        ...ProductSummary
+      }
+    }
+    fragment ProductSummary on InsuranceProduct {
+      productId
+      productName
+      underwritingTrack
+      baseMonthlyPremium
+      maxEntryAge
+    }"
+  }'</span></pre>
+          </div>
+        </div>
+
+        <div class="code-panel">
+          <div class="code-header">
+            <span class="code-lang">예제 2의 응답 결과 — standardProduct와 simplifiedProduct 별칭 키로 깔끔하게 구분되어 반환됨</span>
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre class="code-body">{
+  <span class="str">"data"</span>: {
+    <span class="str">"standardProduct"</span>:   { <span class="str">"productId"</span>: <span class="str">"PROD-HLT-001"</span>,  <span class="str">"productName"</span>: <span class="str">"무배당 시그니처 100세 종합건강보험"</span>,     <span class="str">"underwritingTrack"</span>: <span class="str">"STANDARD"</span>,       <span class="str">"baseMonthlyPremium"</span>: <span class="num">89000</span>,  <span class="str">"maxEntryAge"</span>: <span class="num">65</span> },
+    <span class="str">"simplifiedProduct"</span>: { <span class="str">"productId"</span>: <span class="str">"PROD-SIMP-002"</span>, <span class="str">"productName"</span>: <span class="str">"무배당 3·2·5 원패스 유병자 간편건강보험"</span>, <span class="str">"underwritingTrack"</span>: <span class="str">"SIMPLIFIED_325"</span>, <span class="str">"baseMonthlyPremium"</span>: <span class="num">112000</span>, <span class="str">"maxEntryAge"</span>: <span class="num">75</span> }
+  }
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 21: CH 03 - MUTATION EXAMPLE WITH INPUT OBJECT
+         =================================================================== -->
+    <section class="slide" data-chapter="ch3" data-title="Ch 03. 실전 Mutation 예제: simulateUnderwriting 호출과 응답">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch3">Chapter 03 · GraphQL Schema 완벽 가이드</span>
+            <span class="badge badge-sub">3.8 Mutation in Action</span>
+          </div>
+          <h2 class="slide-title">실전 Mutation 예제: <code class="inline">input</code> 전달 및 변경 결과 그래프 즉시 수신</h2>
+          <p class="slide-subtitle">고혈압(<code class="inline">RF-HTN-I10</code>)과 당뇨(<code class="inline">RF-DM-E11</code>)가 있는 54세 흡연자의 청약 심사를 실행하고, 판정 결과 + 적중 규칙 + 위험점수를 한 번에 받습니다.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">Client — curl Mutation 호출 ($input 변수 전달)</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body">curl -X POST http://localhost:8080/graphql \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -d <span class="str">'{
+    "operationName": "RunSimulation",
+    "query": "mutation RunSimulation($input: UnderwritingSimulationInput!) {
+      simulateUnderwriting(input: $input) {
+        caseId
+        uwStatus
+        targetProduct { productName underwritingTrack baseMonthlyPremium }
+        targetApplicant {
+          applicantName
+          riskAssessment { totalRiskScore riskGrade mortalityLoadingRatio }
+        }
+        matchedRules { ruleCode ruleName actionType }
+        decision {
+          decisionOutcome loadingPercentage finalMonthlyPremium
+          exclusionClauses underwriterNote
+        }
+      }
+    }",
+    "variables": {
+      "input": {
+        "productId": "PROD-HLT-001",
+        "applicantName": "김철수",
+        "age": 54,
+        "gender": "M",
+        "occupationName": "현장 시공 기사",
+        "occupationGrade": 2,
+        "isSmoker": true,
+        "bmi": 27.8,
+        "riskFactorCodes": ["RF-HTN-I10", "RF-DM-E11"]
+      }
+    }
+  }'</span></pre>
+          </div>
+
+          <div class="code-panel">
+            <div class="code-header">
+              <span class="code-lang">Server Response — 심사 실행과 동시에 조립된 3개 도메인 응답</span>
+              <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            </div>
+            <pre class="code-body">{
+  <span class="str">"data"</span>: {
+    <span class="str">"simulateUnderwriting"</span>: {
+      <span class="str">"caseId"</span>: <span class="str">"UW-SIM-2026-901"</span>,
+      <span class="str">"uwStatus"</span>: <span class="str">"SIMULATED"</span>,
+      <span class="str">"targetProduct"</span>: {
+        <span class="str">"productName"</span>: <span class="str">"무배당 시그니처 100세 종합건강보험"</span>,
+        <span class="str">"underwritingTrack"</span>: <span class="str">"STANDARD"</span>,
+        <span class="str">"baseMonthlyPremium"</span>: <span class="num">89000</span>
+      },
+      <span class="str">"targetApplicant"</span>: {
+        <span class="str">"applicantName"</span>: <span class="str">"김철수"</span>,
+        <span class="str">"riskAssessment"</span>: {
+          <span class="str">"totalRiskScore"</span>: <span class="num">84</span>,
+          <span class="str">"riskGrade"</span>: <span class="str">"HIGH_RISK"</span>,
+          <span class="str">"mortalityLoadingRatio"</span>: <span class="num">1.65</span>
+        }
+      },
+      <span class="str">"matchedRules"</span>: [
+        { <span class="str">"ruleCode"</span>: <span class="str">"UW-RULE-CARDIO-01"</span>, <span class="str">"ruleName"</span>: <span class="str">"고혈압(I10) 표준체 할증 심사 규칙"</span>, <span class="str">"actionType"</span>: <span class="str">"PREMIUM_LOADING"</span> },
+        { <span class="str">"ruleCode"</span>: <span class="str">"UW-RULE-ENDO-02"</span>,   <span class="str">"ruleName"</span>: <span class="str">"당뇨병(E11) 및 합병증 위험 심사 규칙"</span>, <span class="str">"actionType"</span>: <span class="str">"PREMIUM_LOADING"</span> }
+      ],
+      <span class="str">"decision"</span>: {
+        <span class="str">"decisionOutcome"</span>: <span class="str">"DECLINED"</span>,
+        <span class="str">"loadingPercentage"</span>: <span class="num">65.0</span>,
+        <span class="str">"finalMonthlyPremium"</span>: <span class="num">0</span>,
+        <span class="str">"exclusionClauses"</span>: [<span class="str">"심뇌혈관 특약 가입 제한 (간편심사 전환 권고)"</span>],
+        <span class="str">"underwriterNote"</span>: <span class="str">"복합 만성질환 및 흡연·비만 위험점수 초과로 표준형 인수거절."</span>
+      }
+    }
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         SLIDE 22: PART 1 WRAP-UP & SELF-CHECK
+         =================================================================== -->
+    <section class="slide" data-chapter="ch3" data-title="Part 1 (Ch 01 ~ 03) 핵심 요약 및 복습 체크리스트">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="slide-badge-row">
+            <span class="badge badge-ch1">Part 1 Wrap-Up</span>
+            <span class="badge badge-sub">Key Takeaways &amp; Self-Check</span>
+          </div>
+          <h2 class="slide-title">Part 1 (Chapter 01 ~ 03) 핵심 요약 &amp; 자습 복습 체크리스트</h2>
+          <p class="slide-subtitle">다음 시간(Part 2: N+1 문제와 Batch, Spring 심화 최적화, Security)으로 넘어가기 전 핵심 개념을 점검해 보세요.</p>
+        </div>
+
+        <div class="grid-3">
+          <div class="card card-pink">
+            <div class="card-title">✅ Chapter 01 핵심 요약</div>
+            <ul>
+              <li><strong>Graph의 의미</strong>: Graph DB가 아니라 비즈니스 도메인 엔티티(Node)와 관계(Edge)의 <strong>Application Data Graph</strong>를 뜻한다.</li>
+              <li><strong>표준 명세</strong>: Linux Foundation 산하 GraphQL Foundation이 <code class="inline">spec.graphql.org</code>와 GraphQL over HTTP 스펙을 관리한다.</li>
+              <li><strong>Netflix 사례</strong>: 수백 개 MSA를 <strong>Federated GraphQL</strong>로 묶었으며, DGS와 <strong>Spring for GraphQL</strong>이 공식 통합되었다.</li>
+            </ul>
+          </div>
+
+          <div class="card card-blue">
+            <div class="card-title">✅ Chapter 02 핵심 요약</div>
+            <ul>
+              <li><strong>Single Endpoint</strong>: 모든 쿼리와 뮤테이션이 <code class="inline">POST /graphql</code> 단일 진입점으로 들어간다.</li>
+              <li><strong>Over/Under-fetching 해결</strong>: 클라이언트가 Selection Set으로 필요한 필드만 고르고, 서버 <code class="inline">@SchemaMapping</code>이 다중 도메인 그래프를 조립해 1회 응답한다.</li>
+              <li><strong>Partial Success</strong>: Nullable 필드 장애 시 <code class="inline">data</code>와 <code class="inline">errors</code>를 함께 내려보내 화면 전체 장애를 막는다.</li>
+            </ul>
+          </div>
+
+          <div class="card card-green">
+            <div class="card-title">✅ Chapter 03 핵심 요약</div>
+            <ul>
+              <li><strong><code class="inline">[T!]!</code></strong>: 리스트 자체와 원소 모두 Non-Null을 보장하는 가장 안전한 컬렉션 표기법이다.</li>
+              <li><strong><code class="inline">type</code> vs <code class="inline">input</code></strong>: 계산 필드/순환 참조를 가진 출력 객체(<code class="inline">type</code>)와 순수 입력값 구조체(<code class="inline">input</code>)는 엄격히 분리된다.</li>
+              <li><strong><code class="inline">Query</code> vs <code class="inline">Mutation</code></strong>: Query 루트 필드는 병렬 실행되고, Mutation 루트 필드는 순차(Serial) 실행이 보장된다.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="highlight-box">
+          🚀 <strong>Next Step (Part 2 예고)</strong>:
+          클라이언트가 편리하게 중첩 쿼리를 날릴 때 백엔드에서 발생하는 <strong>N+1 문제와 <code class="inline">@BatchMapping</code> 해결법</strong>, <strong>스키마 버전 관리(<code class="inline">@deprecated</code>, GraphQL Inspector/Hive)</strong>, <strong>캐싱을 위한 REST 하이브리드 전략</strong>, 그리고 <strong>Spring for GraphQL 동적 Join 최적화 &amp; Spring Security 연동</strong>으로 이어집니다.
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- TOC Modal -->
+  <div class="toc-modal" id="tocModal" onclick="if(event.target===this) toggleToc()">
+    <div class="toc-content">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="font-size:18px; font-weight:800;">📑 전체 슬라이드 목차 (Part 1: Ch 01 ~ Ch 03)</h3>
+        <button class="btn" onclick="toggleToc()">✕ 닫기 (ESC)</button>
+      </div>
+      <div class="toc-grid" id="tocGrid"></div>
+    </div>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const totalSlides = slides.length;
+    let currentIndex = 0;
+
+    const counterEl = document.getElementById('slideCounter');
+    const progressEl = document.getElementById('progressFill');
+    const tocModal = document.getElementById('tocModal');
+    const tocGrid = document.getElementById('tocGrid');
+
+    function buildToc() {
+      tocGrid.innerHTML = '';
+      slides.forEach((s, idx) => {
+        const item = document.createElement('div');
+        item.className = 'toc-item';
+        item.innerHTML = `<span class="toc-num">#${String(idx + 1).padStart(2, '0')}</span><span>${s.dataset.title || 'Slide ' + (idx + 1)}</span>`;
+        item.onclick = () => {
+          goToSlide(idx);
+          toggleToc();
+        };
+        tocGrid.appendChild(item);
+      });
+    }
+
+    function updateUI() {
+      slides.forEach((s, idx) => {
+        s.classList.toggle('active', idx === currentIndex);
+      });
+      counterEl.textContent = `${currentIndex + 1} / ${totalSlides}`;
+      progressEl.style.width = `${((currentIndex + 1) / totalSlides) * 100}%`;
+
+      const ch = slides[currentIndex].dataset.chapter;
+      document.getElementById('pill-intro').classList.toggle('active', ch === 'intro');
+      document.getElementById('pill-ch1').classList.toggle('active', ch === 'ch1');
+      document.getElementById('pill-ch2').classList.toggle('active', ch === 'ch2');
+      document.getElementById('pill-ch3').classList.toggle('active', ch === 'ch3');
+
+      window.location.hash = `slide-${currentIndex + 1}`;
+    }
+
+    function goToSlide(index) {
+      if (index < 0) index = 0;
+      if (index >= totalSlides) index = totalSlides - 1;
+      currentIndex = index;
+      updateUI();
+    }
+
+    function nextSlide() {
+      if (currentIndex < totalSlides - 1) {
+        currentIndex++;
+        updateUI();
+      }
+    }
+
+    function prevSlide() {
+      if (currentIndex > 0) {
+        currentIndex--;
+        updateUI();
+      }
+    }
+
+    function toggleToc() {
+      tocModal.classList.toggle('open');
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    function copyCode(btn) {
+      const pre = btn.closest('.code-panel').querySelector('pre');
+      if (!pre) return;
+      navigator.clipboard.writeText(pre.innerText).then(() => {
+        const old = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = old; }, 1400);
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (tocModal.classList.contains('open')) {
+        if (e.key === 'Escape' || e.key === 'm' || e.key === 'M') {
+          toggleToc();
+        }
+        return;
+      }
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        goToSlide(0);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        goToSlide(totalSlides - 1);
+      } else if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        toggleToc();
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      buildToc();
+      const match = window.location.hash.match(/slide-(\d+)/);
+      if (match) {
+        const idx = parseInt(match[1], 10) - 1;
+        if (idx >= 0 && idx < totalSlides) currentIndex = idx;
+      }
+      updateUI();
+    });
+  </script>
+</body>
+</html>

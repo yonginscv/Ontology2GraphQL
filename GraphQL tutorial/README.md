@@ -8,6 +8,7 @@ GraphQL의 탄생 배경과 철학부터 스키마 설계, 실무 운영 시 주
 > - **Server 구현 예제**: Java 17+, Spring Boot 3.x, Spring for GraphQL, Spring Security 6.x
 > - **다이어그램**: Mermaid (`flowchart`, `sequenceDiagram`, `classDiagram`, `erDiagram`)
 > - **실증 레퍼런스 프로젝트**: 본 워크스페이스의 [`backend/`](../backend) 및 [`sales-frontend/`](../sales-frontend) (`Ontology2GraphQL` PoC)
+> - **발표용 HTML 슬라이드 (Part 1 — Ch 01 ~ Ch 03)**: [`slides-part1-ch01-03.html`](./slides-part1-ch01-03.html) *(브라우저에서 바로 열어 발표 및 독학 가능)*
 
 ---
 
