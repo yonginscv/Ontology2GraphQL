@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/mock/product-service")
@@ -179,5 +180,38 @@ public class ProductMockProvider {
                 14
         );
         return productStore.get(productId);
+    }
+
+    @GetMapping("/products/batch")
+    public Map<String, InsuranceProduct> getProductsByIds(
+            @RequestParam List<String> ids,
+            @RequestParam(defaultValue = "BatchedUnderwritingCase[*].targetProduct") String fieldPath
+    ) {
+        List<String> uniqueIds = ids == null ? List.of() : ids.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (uniqueIds.isEmpty()) {
+            return Map.of();
+        }
+        lineageCollector.recordStep(
+                fieldPath,
+                "ins:InsuranceProduct",
+                "ins:targetProduct -> ins:InsuranceProduct (Batch @BatchMapping)",
+                "Product",
+                "product-catalog-service",
+                "GET",
+                "/mock/product-service/products/batch?ids=" + String.join(",", uniqueIds),
+                List.of("prod_id", "prod_cd", "prod_nm", "base_mm_prem", "uw_track_type", "cov_id", "cov_nm", "sens_risk_cat", "bnf_id", "payout_amt"),
+                16
+        );
+        Map<String, InsuranceProduct> result = new LinkedHashMap<>();
+        for (String id : uniqueIds) {
+            InsuranceProduct product = productStore.get(id);
+            if (product != null) {
+                result.put(id, product);
+            }
+        }
+        return result;
     }
 }

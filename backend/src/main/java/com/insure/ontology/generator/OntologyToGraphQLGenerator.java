@@ -232,6 +232,18 @@ public class OntologyToGraphQLGenerator {
         }
 
         sb.append("""
+                "언더라이팅 심사건 배치 처리 예제 (@BatchMapping으로 N+1 문제를 해결한 타입)"
+                type BatchedUnderwritingCase {
+                  caseId: ID!
+                  applicationDate: String!
+                  channelType: String!
+                  uwStatus: String!
+                  targetProduct: InsuranceProduct!
+                  targetApplicant: ApplicantProfile!
+                  matchedRules: [UnderwritingRule!]!
+                  decision: UnderwritingDecision!
+                }
+
                 "데이터 계보(Data Lineage) 추적 엔트리: GraphQL 필드가 어떤 온톨로지 개념 및 백엔드 서비스 호출로부터 도출되었는지 기록"
                 type LineageStep {
                   stepOrder: Int!
@@ -263,6 +275,9 @@ public class OntologyToGraphQLGenerator {
                 type Query {
                   "모든 언더라이팅 심사건 목록 조회 (Product + Risk + Underwriting 3개 도메인 통합 그래프)"
                   underwritingCases: [UnderwritingCase!]!
+
+                  "모든 언더라이팅 심사건 목록 조회 (@BatchMapping 기반 배치 처리로 N+1 해결)"
+                  underwritingCasesBatched: [BatchedUnderwritingCase!]!
 
                   "특정 언더라이팅 심사건 단건 조회 (3개 도메인 마이크로서비스 조립)"
                   underwritingCase(caseId: ID!): UnderwritingCase

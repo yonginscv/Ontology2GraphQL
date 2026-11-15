@@ -75,6 +75,30 @@ public class DomainModels {
             UnderwritingDecision decision
     ) {}
 
+    public record BatchedUnderwritingCase(
+            String caseId,
+            String applicationDate,
+            String channelType,
+            String uwStatus,
+            String targetProductId,
+            String targetApplicantId,
+            List<String> matchedRuleIds,
+            UnderwritingDecision decision
+    ) {
+        public static BatchedUnderwritingCase from(UnderwritingCase uwCase) {
+            return new BatchedUnderwritingCase(
+                    uwCase.caseId(),
+                    uwCase.applicationDate(),
+                    uwCase.channelType(),
+                    uwCase.uwStatus(),
+                    uwCase.targetProductId(),
+                    uwCase.targetApplicantId(),
+                    uwCase.matchedRuleIds(),
+                    uwCase.decision()
+            );
+        }
+    }
+
     public record UnderwritingRule(
             String ruleId,
             String ruleCode,

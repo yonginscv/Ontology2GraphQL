@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
@@ -193,8 +194,12 @@ public class UnderwritingMockProvider {
 
     @GetMapping("/cases")
     public List<UnderwritingCase> getAllCases() {
+        return getAllCases("Query.underwritingCases");
+    }
+
+    public List<UnderwritingCase> getAllCases(String fieldPath) {
         lineageCollector.recordStep(
-                "Query.underwritingCases",
+                fieldPath,
                 "ins:UnderwritingCase",
                 "ins:caseId, ins:uwStatus, ins:targetProduct, ins:targetApplicant, ins:decision",
                 "Underwriting",
@@ -255,8 +260,41 @@ public class UnderwritingMockProvider {
         );
         return ruleIds.stream()
                 .map(ruleStore::get)
-                .filter(r -> r != null)
+                .filter(Objects::nonNull)
                 .toList();
+    }
+
+    @GetMapping("/rules/batch")
+    public Map<String, UnderwritingRule> getRulesByBatchIds(
+            @RequestParam List<String> ids,
+            @RequestParam(defaultValue = "BatchedUnderwritingCase[*].matchedRules") String fieldPath
+    ) {
+        List<String> uniqueIds = ids == null ? List.of() : ids.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (uniqueIds.isEmpty()) {
+            return Map.of();
+        }
+        lineageCollector.recordStep(
+                fieldPath,
+                "ins:UnderwritingRule",
+                "ins:matchedRules -> ins:UnderwritingRule (Batch @BatchMapping)",
+                "Underwriting",
+                "underwriting-engine-service",
+                "GET",
+                "/mock/uw-service/rules/batch?ids=" + String.join(",", uniqueIds),
+                List.of("rule_id", "rule_cd", "rule_nm", "cond_expr", "act_type", "rule_desc"),
+                12
+        );
+        Map<String, UnderwritingRule> result = new LinkedHashMap<>();
+        for (String id : uniqueIds) {
+            UnderwritingRule rule = ruleStore.get(id);
+            if (rule != null) {
+                result.put(id, rule);
+            }
+        }
+        return result;
     }
 
     @PostMapping("/simulate")

@@ -74,3 +74,52 @@ npm run dev
   - **Step 1 (피보험자 선택 및 고지사항)**: `applicantProfiles` 조회, 등록 고객 선택 및 신규 가망고객/위험요소(`RiskFactor`) 커스텀 입력, 실시간 예상 AI 위험점수(`RiskAssessment`) 확인
   - **Step 2 (보험상품 선택 및 담보·급부 분석)**: `insuranceProducts` 조회, 고객 연령·위험요소와 담보별 민감 위험분류(`sensitiveRiskCategory`) 자동 매칭 및 급부 조건(`BenefitCondition`) 확인
   - **Step 3 (실시간 언더라이팅 심사 및 대안 설계)**: `simulateUnderwriting` Mutation 실행, 최종 인수판정(`UnderwritingDecision`), 월 납입보험료(할증 반영), 부담보 조건, 적중 룰(`UnderwritingRule`) 확인 및 인수거절/할증 시 3·2·5 유병자 간편보험 원클릭 전환 비교 심사
+
+---
+
+## 4. GraphQL N+1 문제 및 Batch Processing (`@BatchMapping`) 실증 예제
+
+백엔드 [`OntologyGraphQLController.java`](./backend/src/main/java/com/insure/ontology/graphql/OntologyGraphQLController.java)에서는 목록 조회 시 하위 도메인 리졸버가 건별로 호출되는 **N+1 사례(`underwritingCases`)**와, 이를 Spring for GraphQL의 `@BatchMapping`으로 일괄 처리하는 **배치 처리 예제(`underwritingCasesBatched`)**를 나란히 비교 실행할 수 있습니다.
+
+### 4.1 N+1 발생 사례 (`Query.underwritingCases` + `@SchemaMapping`)
+- `underwritingCases`가 5건의 `UnderwritingCase`를 반환하면, 각 건마다 3개 도메인 필드의 `@SchemaMapping` 리졸버가 개별 호출됩니다.
+  - `UnderwritingCase.targetProduct` → [`ProductMockProvider.getProductById`](./backend/src/main/java/com/insure/ontology/provider/ProductMockProvider.java) (5회 호출, `PROD-HLT-001` 중복 3회 포함)
+  - `UnderwritingCase.targetApplicant` → [`RiskMockProvider.getApplicantById`](./backend/src/main/java/com/insure/ontology/provider/RiskMockProvider.java) (5회 호출, `APPL-1002` 중복 2회 포함)
+  - `UnderwritingCase.matchedRules` → [`UnderwritingMockProvider.getRulesByIds`](./backend/src/main/java/com/insure/ontology/provider/UnderwritingMockProvider.java) (5회 호출)
+- 전체 필드 조회 시 총 **1 + 5 + 5 + 5 = 16회**의 백엔드 호출(`extensions.totalBackendCalls = 16`)이 발생합니다.
+
+### 4.2 Batch Processing 해결 예제 (`Query.underwritingCasesBatched` + `@BatchMapping`)
+- [`BatchedUnderwritingCase`](./backend/src/main/java/com/insure/ontology/model/DomainModels.java) 타입과 `@BatchMapping` 리졸버(`batchTargetProducts`, `batchTargetApplicants`, `batchMatchedRules`)를 통해 상위 목록 전체의 외래키를 수집·중복 제거한 뒤 도메인별 배치 엔드포인트를 단 1회씩만 호출합니다.
+  1. `GET /mock/uw-service/cases` (심사건 5건 조회 — 1회)
+  2. `GET /mock/product-service/products/batch?ids=PROD-HLT-001,PROD-SIMP-002,PROD-DRV-003` (중복 제거된 상품 3건 일괄 조회 — 1회)
+  3. `GET /mock/risk-service/applicants/batch?ids=APPL-1001,APPL-1002,APPL-1003,APPL-1004` (중복 제거된 피보험자 4건 일괄 조회 — 1회)
+  4. `GET /mock/uw-service/rules/batch?ids=RULE-UW-01,RULE-UW-02,RULE-UW-03,RULE-UW-04,RULE-UW-05` (규칙 5건 일괄 조회 — 1회)
+- 동일한 응답 페이로드를 반환하면서 백엔드 호출 횟수가 **16회 → 4회**(`extensions.totalBackendCalls = 4`)로 감소합니다.
+
+### 4.3 비교 실행 예시 쿼리 (`/graphql` 또는 `/graphiql`)
+```graphql
+# 1) N+1 발생 예제 (extensions.totalBackendCalls = 16)
+query NPlusOneCases {
+  underwritingCases {
+    caseId
+    uwStatus
+    targetProduct { productId productName }
+    targetApplicant { applicantId applicantName riskAssessment { totalRiskScore } }
+    matchedRules { ruleId ruleCode }
+    decision { decisionOutcome finalMonthlyPremium }
+  }
+}
+
+# 2) @BatchMapping 배치 처리 예제 (extensions.totalBackendCalls = 4)
+query BatchedCases {
+  underwritingCasesBatched {
+    caseId
+    uwStatus
+    targetProduct { productId productName }
+    targetApplicant { applicantId applicantName riskAssessment { totalRiskScore } }
+    matchedRules { ruleId ruleCode }
+    decision { decisionOutcome finalMonthlyPremium }
+  }
+}
+```
+- 통합 테스트 검증: [`OntologyToGraphQLIntegrationTest.java`](./backend/src/test/java/com/insure/ontology/OntologyToGraphQLIntegrationTest.java)의 `shouldDemonstrateNPlusOneAndBatchProcessingReduction`에서 두 쿼리의 응답 동치성과 `extensions.totalBackendCalls`(16 vs 4) 및 `extensions.ontologyLineage` 호출 내역을 검증합니다.

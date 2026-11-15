@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/mock/risk-service")
@@ -176,6 +177,39 @@ public class RiskMockProvider {
                 19
         );
         return applicantStore.get(applicantId);
+    }
+
+    @GetMapping("/applicants/batch")
+    public Map<String, ApplicantProfile> getApplicantsByIds(
+            @RequestParam List<String> ids,
+            @RequestParam(defaultValue = "BatchedUnderwritingCase[*].targetApplicant") String fieldPath
+    ) {
+        List<String> uniqueIds = ids == null ? List.of() : ids.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (uniqueIds.isEmpty()) {
+            return Map.of();
+        }
+        lineageCollector.recordStep(
+                fieldPath,
+                "ins:ApplicantProfile",
+                "ins:targetApplicant -> ins:ApplicantProfile (Batch @BatchMapping)",
+                "Risk",
+                "risk-assessment-service",
+                "GET",
+                "/mock/risk-service/applicants/batch?ids=" + String.join(",", uniqueIds),
+                List.of("appl_id", "appl_nm", "ins_age", "occ_grd", "smk_yn", "bmi_val", "rf_cd", "sev_lvl", "tot_risk_scr", "mort_load_ratio"),
+                22
+        );
+        Map<String, ApplicantProfile> result = new LinkedHashMap<>();
+        for (String id : uniqueIds) {
+            ApplicantProfile profile = applicantStore.get(id);
+            if (profile != null) {
+                result.put(id, profile);
+            }
+        }
+        return result;
     }
 
     public List<RiskFactor> getAvailableRiskFactorsCatalog() {
