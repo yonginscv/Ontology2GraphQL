@@ -123,6 +123,7 @@ class OntologyToGraphQLIntegrationTest {
                 .doesNotContain("unpkg.com")
                 .doesNotContain("http://")
                 .doesNotContain("https://")
+                .contains("<meta charset=\"UTF-8\" />")
                 .contains("/graphiql/vendor/react.production.min.js")
                 .contains("/graphiql/vendor/react-dom.production.min.js")
                 .contains("/graphiql/vendor/graphiql.min.js")
@@ -144,12 +145,20 @@ class OntologyToGraphQLIntegrationTest {
             assertThat(asset.contentLength()).as("Expected offline asset to be non-empty: " + assetPath).isGreaterThan(0);
 
             String webPath = assetPath.substring("static".length());
-            mockMvc.perform(get(webPath))
-                    .andExpect(status().isOk());
+            MvcResult assetResult = mockMvc.perform(get(webPath))
+                    .andExpect(status().isOk())
+                    .andReturn();
+            assertThat(assetResult.getResponse().getContentType())
+                    .as("Expected UTF-8 charset on static asset: " + webPath)
+                    .containsIgnoringCase("charset=UTF-8");
         }
 
-        mockMvc.perform(get("/graphiql").param("path", "/graphql"))
-                .andExpect(status().isOk());
+        MvcResult graphiqlResult = mockMvc.perform(get("/graphiql").param("path", "/graphql"))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertThat(graphiqlResult.getResponse().getContentType())
+                .contains("text/html")
+                .containsIgnoringCase("charset=UTF-8");
     }
 
     @Test
